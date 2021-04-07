@@ -1,0 +1,22 @@
+name = "SDD"
+uuid = "e2596206-8c5a-4a2a-ac4a-ff6ba1dc0f42"
+authors = [
+  "Renato Leriche Vázquez <r_lerichev@ciencias.unam.mx>",
+  "Luis Muñiz",
+  "Edgar Rodriguez",
+  "Daniel Blancas"
+]
+version = "0.1.0"
+
+[compat]
+julia = "1"
+
+[deps]
+SDDCore = "8f913c48-6887-4730-b137-e2c711b5bdd3"
+SDDGraphics = "304806c1-f3a4-495b-9174-80ddb4fc0831"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]

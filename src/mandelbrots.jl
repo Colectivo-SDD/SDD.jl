@@ -21,6 +21,9 @@ The Mandelbrot set of \$f_{a,b}\$ over \$(x_0,y_0)\$ is defined as
 function drawmandelbrotR2(f::Function, x0::Real=0, y0::Real=0;
     hasescaped::Function=(x::Real,y::Real) -> x*x+y*y > 4, maxiterations::Int=100)
 
+    # Veryfying if graphics backend supports functions
+    SDDGraphics.supported(:drawpixel)
+
     # Verifying functions
     @assert typeof(f(0., 0., 1., 1.)) <: Tuple{Real,Real}
     @assert typeof(hasescaped(1., 1.)) <: Bool
@@ -67,6 +70,9 @@ The Mandelbrot set of \$f_{\\lambda}\$ over \$z_0\$ is defined as
 """
 function drawmandelbrotC(f::Function, z0::Number=0;
     hasescaped::Function=z::Number -> abs2(z) > 4, maxiterations::Int=100)
+
+    # Veryfying if graphics backend supports functions
+    SDDGraphics.supported(:drawpixel)
 
     # Verifying functions
     @assert typeof(f(0, 1.0im)) <: Number

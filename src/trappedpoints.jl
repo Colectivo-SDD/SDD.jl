@@ -18,6 +18,9 @@ The trapped points set of \$f\$ is defined as
 function drawtrappedpointsR2(f::Function;
     hasescaped::Function=(x::Real,y::Real) -> x*x+y*y > 4, maxiterations::Int=100)
 
+    # Veryfying if graphics backend supports functions
+    SDDGraphics.supported(:drawpixel)
+
     # Verifying functions
     @assert typeof(f(1., 1.)) <: Tuple{Real,Real}
     @assert typeof(hasescaped(1., 1.)) <: Bool
@@ -101,6 +104,9 @@ The trapped points set of \$f\$ is defined as
 """
 function drawtrappedpointsC(f::Function;
     hasescaped::Function=z::Number -> abs2(z) > 4, maxiterations::Int=100)
+
+    # Veryfying if graphics backend supports functions
+    SDDGraphics.supported(:drawpixel)
 
     # Verifying functions
     @assert typeof(f(1.0im)) <: Number

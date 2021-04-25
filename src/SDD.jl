@@ -11,6 +11,7 @@ import SDDGraphics
 include("orbits.jl")
 include("trappedpoints.jl")
 include("mandelbrots.jl")
+include("preimages.jl")
 
 export
     drawpointorbitR2,
@@ -20,6 +21,8 @@ export
     drawtrappedpointsR2,
     drawtrappedpointsC,
     drawmandelbrotR2,
-    drawmandelbrotC
+    drawmandelbrotC,
+    drawpreimageR2,
+    drawpreimageC
 
 end # module

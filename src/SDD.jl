@@ -5,8 +5,11 @@ or Discrete Dynamical Systems.
 """
 module SDD
 
-using SDDCore
-import SDDGraphics
+using Reexport
+
+@reexport using SDDCore, SDDGraphics
+#@reexport import 
+
 
 include("orbits.jl")
 include("trappedpoints.jl")

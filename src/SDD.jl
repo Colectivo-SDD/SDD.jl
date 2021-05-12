@@ -8,19 +8,24 @@ module SDD
 using Reexport
 
 @reexport using SDDCore, SDDGraphics
-#@reexport import 
+#@reexport import
 
 
+include("graphicalanalysis.jl")
 include("orbits.jl")
 include("trappedpoints.jl")
 include("mandelbrots.jl")
 include("preimages.jl")
 
 export
+    plot,
+    graphicalanalysis,
     drawpointorbitR2,
     drawpointorbitC,
     drawpointssetorbitR2,
     drawpointssetorbitC,
+    drawpointorbitpathR2,
+    drawpointorbitpathC,
     drawtrappedpointsR2,
     drawtrappedpointsC,
     drawmandelbrotR2,

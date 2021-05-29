@@ -186,7 +186,7 @@ Return the drawing of the orbit's path of a point \$(x_0,y_0)\$ under a function
 in a rectangular region in \$\\mathbb{R}^2\$.
 
 The orbit of \$(x_0,y_0)\$ under \$f\$ is defined as
-\$o(x_0,y_0,f)=\\{(x_0,y_0),f(x_0,y_0),\\dots,f^n(x_0,y_0),\\dots\\}\$
+\$o(x_0,y_0,f)=\\{(x_0,y_0),f(x_0,y_0),\\dots,f^n(x_0,y_0),\\dots\\}\$.
 
 #### Arguments
 - `f::Function`: A function \$f:\\mathbb{R}^2\\rightarrow\\mathbb{R}^2\$.
@@ -282,3 +282,47 @@ function drawpointorbitpathC(f::Function, z0::Number;
     SDDGraphics.drawing()
 
 end # function drawpointorbitpathC
+
+"""
+    drawpointorbitpathR(f, x0, y0 [; preiterations, iterations])
+
+Return the drawing of the orbit's arc-path of a point \$x_0\$ under a function
+\$f:\\mathbb{R}\\rightarrow\\mathbb{R}\$.
+
+The orbit of \$x_0\$ under \$f\$ is defined as
+\$o(x_0,f)=\\{x_0,f(x_0,\\dots,f^n(x_0,\\dots\\}\$.
+
+#### Arguments
+- `f::Function`: A function \$f:\\mathbb{R}^2\\rightarrow\\mathbb{R}^2\$.
+- `x0::Real`: X coordinate of the point.
+- `y0::Real`: Y coordinate of the point.
+- `preiterations::Integer`: Number of first iterations to calculate but not to draw.
+- `iterations::Integer`: Number of iterations to calculate (after `preiterations`).
+"""
+function drawpointorbitpathR(f::Function, x0::Real;
+    preiterations::Integer=0, iterations::Integer=100)
+
+    SDDGraphics.supported(:drawarc)
+
+    # Verifying functions
+    @assert typeof(f(1.)) <: Real
+
+    SDDGraphics.newdrawing()
+    SDDGraphics.updatecolorarray(iterations)
+
+    xn0 = x0
+
+    for n in 1:preiterations
+        xn0 = f(xn0)
+    end # for n preiterations
+
+    for n in 1:iterations
+        xn1 = f(xn0)
+        SDDGraphics.color(n)
+        SDDGraphics.drawarc(xn0,0,xn1,0)
+        xn0 = xn1
+    end # for n iterations
+
+    SDDGraphics.drawing()
+
+end # function drawpointorbitpathR2

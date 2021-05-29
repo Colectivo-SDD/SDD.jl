@@ -16,6 +16,7 @@ include("orbits.jl")
 include("trappedpoints.jl")
 include("mandelbrots.jl")
 include("preimages.jl")
+include("basins.jl")
 
 export
     plot,
@@ -24,6 +25,7 @@ export
     drawpointorbitC,
     drawpointssetorbitR2,
     drawpointssetorbitC,
+    drawpointorbitpathR,
     drawpointorbitpathR2,
     drawpointorbitpathC,
     drawtrappedpointsR2,
@@ -31,6 +33,8 @@ export
     drawmandelbrotR2,
     drawmandelbrotC,
     drawpreimageR2,
-    drawpreimageC
+    drawpreimageC,
+    drawbasinsR2,
+    drawbasinsC
 
 end # module

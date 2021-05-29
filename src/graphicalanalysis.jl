@@ -16,7 +16,7 @@ function plot(f::Function; iterations::Int=1)
     @assert typeof(f(1.)) <: Real
 
     SDDGraphics.newdrawing()
-    SDDGraphics.color(SDDGraphics.fgcolor())
+    #SDDGraphics.color(SDDGraphics.fgcolor())
 
     x1, x2 = SDDGraphics.xlims()
     w = SDDGraphics.width()
@@ -65,14 +65,8 @@ function graphicalanalysis(f::Function, x0::Real; iterations::Int=10)
     w = SDDGraphics.width()
     Δx = (x2-x1)/w
 
-    # Plot the graph of the identity
-    SDDGraphics.color(RGB(0.5,0.5,0.5))
-    xi0 = min(x1,y1)
-    xi1 = max(x2,y2)
-    SDDGraphics.drawlinesegment(xi0,xi0,xi1,xi1)
-
     # Plot of the function's graph
-    SDDGraphics.color(SDDGraphics.fgcolor())
+    #SDDGraphics.color(SDDGraphics.fgcolor())
     xi0 = x1
     yi0 = f(x1)
     for i in 1:w
@@ -81,6 +75,12 @@ function graphicalanalysis(f::Function, x0::Real; iterations::Int=10)
         SDDGraphics.drawlinesegment(xi0,yi0,xi1,yi1)
         xi0, yi0 = xi1, yi1
     end
+
+    # Plot the graph of the identity
+    SDDGraphics.color(RGB(0.5,0.5,0.5))
+    xi0 = min(x1,y1)
+    xi1 = max(x2,y2)
+    SDDGraphics.drawlinesegment(xi0,xi0,xi1,xi1)
 
     # Graphical analysis of the orbit of x0
     SDDGraphics.color(RGB(1,0,0))

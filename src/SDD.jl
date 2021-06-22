@@ -38,6 +38,6 @@ export
     drawbasinsR2,
     drawbasinsC,
     drawbasinsR2_NY,
-    drawbasinsNYC_NY
+    drawbasinsC_NY
 
 end # module

@@ -34,7 +34,7 @@ function drawbasinsR2(f::Function, points::AbstractArray;
     SDDGraphics.updatecolorarray(num_colors)
 
     @sweeprectregion SDDGraphics.xlims() SDDGraphics.ylims() SDDGraphics.canvassize() begin
-        xn,yn = x,y
+        real(zn),yn = x,y
         escapetime = maxiterations
         index = num_colors
         for n in 1:maxiterations
@@ -226,9 +226,6 @@ function drawbasinsR2_NY(f::Function;
                     break
                 end
                 iter_count += 1
-                if iter_count == maxiterations
-                    println("too long")
-                end
             end
         end
     end # Implemented algorithm
@@ -242,7 +239,24 @@ function drawbasinsR2_NY(f::Function;
     SDDGraphics.drawing()
 end # function drawtrappedpointsR2
 
+"""
+    drawbasinsC_NY(f [; SD, MC, BAP, maxiterations])
 
+Return the drawing of the attracting or parabolic basins of given periodic
+points of a function \$f:\\mathbb{C}\\rightarrow\\mathbb{C}\$,
+in a rectangular region in \$\\mathbb{C}\$.
+
+The attracting (parabolic) basin of a periodic point \$z_0\$ of period
+\$k\$ under \$f\$ is defined as
+\$\\mathcal{B}(z_0)=\\{z\\in\\mathbb{C}\\,|\\,|(f^k)^n(z)|\\rightarrow z_0\\,n\\rightarrow\\infty\\}\$
+
+#### Arguments
+- `f::Function`: A function \$f:\\mathbb{C}\\rightarrow\\mathbb{C}\$.
+- `SD::Int`: Number of screenwidths away from the origin before a point is considered to have escaped.
+- `MC::Int`: Number of iterations used to verify whether an orbit is periodic.
+- `BAP::Int`: Number of iterations used to verify whether an orbit falls in another basin.
+- `maxiterations::Integer`: Maximum number of iterations to check.
+"""
 function drawbasinsC_NY(f::Function;
     SD::Int=2, MC::Int=60, BAP::Int=6, maxiterations::Int=100000)
 
@@ -250,7 +264,7 @@ function drawbasinsC_NY(f::Function;
     SDDGraphics.supported(:drawpixel)
 
     # Verifying functions
-    @assert typeof(f(1., 1.)) <: Tuple{Real,Real}
+    @assert typeof(f(.1im)) <: Number
 
     SDDGraphics.newdrawing()
 
@@ -261,7 +275,7 @@ function drawbasinsC_NY(f::Function;
         ii = i
         jj = j
         if assign_array[ii,jj] == -1
-            xn,yn = x,y
+            zn = complex(x,y)
             index = (basin_count * 2) + 1  # color 1 is reserved for the basin of ∞
             color_pixels = [(ii,jj)]
             🛑 = false # indicating whether routine has reached a stop point
@@ -272,10 +286,10 @@ function drawbasinsC_NY(f::Function;
             assign_array[ii,jj] = index
 
             while !🛑 && iter_count < maxiterations
-                xn, yn = f(xn,yn)
-                ii = floor(Int, ncols*(xn-xmin)/(xmax-xmin)) + 1 # plus one since index starts at one
-                jj = floor(Int, nrows*(yn-ymin)/(ymax-ymin)) + 1
-                if xmin<=xn<=xmax && ymin<=yn<=ymax
+                zn = f(zn)
+                ii = floor(Int, ncols*(real(zn)-xmin)/(xmax-xmin)) + 1 # plus one since index starts at one
+                jj = floor(Int, nrows*(imag(zn)-ymin)/(ymax-ymin)) + 1
+                if xmin<=real(zn)<=xmax && ymin<=imag(zn)<=ymax
                     # if the pixel doesn't have an assigned color we assign it the 
                     if assign_array[ii,jj] == -1 # while the orbit meets uncolored boxes it just adds them to the list
                         push!(color_pixels,(ii,jj))
@@ -317,7 +331,7 @@ function drawbasinsC_NY(f::Function;
                         break
                     end
                 
-                elseif abs(xn-(xmax-xmin)/2)>SD*(xmax-xmin) || abs(yn-(ymax-ymin)/2)>SD*(ymax-ymin)
+                elseif abs(real(zn)-(xmax-xmin)/2)>SD*(xmax-xmin) || abs(imag(zn)-(ymax-ymin)/2)>SD*(ymax-ymin)
 
                     for pix in color_pixels
                         assign_array[pix[1],pix[2]] = 1
@@ -326,9 +340,6 @@ function drawbasinsC_NY(f::Function;
                     break
                 end
                 iter_count += 1
-                if iter_count == maxiterations
-                    println("too long")
-                end
             end
         end
     end # Implemented algorithm

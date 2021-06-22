@@ -5,6 +5,7 @@ or Discrete Dynamical Systems.
 """
 module SDD
 
+using Base: iterate_continued
 using Reexport
 
 @reexport using SDDCore, SDDGraphics
@@ -35,6 +36,8 @@ export
     drawpreimageR2,
     drawpreimageC,
     drawbasinsR2,
-    drawbasinsC
+    drawbasinsC,
+    drawbasinsR2_NY,
+    drawbasinsNYC_NY
 
 end # module

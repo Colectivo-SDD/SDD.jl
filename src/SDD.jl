@@ -37,7 +37,7 @@ export
     drawpreimageC,
     drawbasinsR2,
     drawbasinsC,
-    drawbasinsR2_NY,
-    drawbasinsC_NY
+    drawbasinsR2_BAP,
+    drawbasinsC_BAP
 
 end # module

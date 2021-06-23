@@ -127,7 +127,7 @@ function drawbasinsC(f::Function, points::AbstractArray;
 end # function drawtrappedpointsR2
 
 """
-    drawbasinsR2_NY(f [; SD, MC, BAP, maxiterations])
+    drawbasinsR2_BAP(f [; SD, MC, BAP, maxiterations])
 
 Return the drawing of the attracting or parabolic basins of given periodic
 points of a function \$f:\\mathbb{R}^2\\rightarrow\\mathbb{R}^2\$,
@@ -246,7 +246,7 @@ function drawbasinsR2_BAP(f::Function;
 end # function drawtrappedpointsR2
 
 """
-    drawbasinsC_NY(f [; SD, MC, BAP, maxiterations])
+    drawbasinsC_BAP(f [; SD, MC, BAP, maxiterations])
 
 Return the drawing of the attracting or parabolic basins of given periodic
 points of a function \$f:\\mathbb{C}\\rightarrow\\mathbb{C}\$,

@@ -144,7 +144,7 @@ The attracting (parabolic) basin of a periodic point \$(x_0,y_0)\$ of period
 - `maxiterations::Integer`: Maximum number of iterations to check.
 """
 function drawbasinsR2_NY(f::Function;
-    SD::Int=2, MC::Int=60, BAP::Int=6, maxiterations::Int=100000)
+    SD::Int=2, MC::Int=60, BAP::Int=1, maxiterations::Int=100000)
 
     # Veryfying if graphics backend supports functions
     SDDGraphics.supported(:drawpixel)
@@ -167,25 +167,28 @@ function drawbasinsR2_NY(f::Function;
             🛑 = false # indicating whether routine has reached a stop point
             count_orbit = 0 # variable to keep track of repeating orbit
             ⭕️ = false # set to true once the routine changes for a periodic orbit
-            iter_count = 0
+            iter_count = 0 #
+            BAP_count = 0
 
             assign_array[ii,jj] = index
 
             while !🛑 && iter_count < maxiterations
                 xn, yn = f(xn,yn)
                 ii = floor(Int, ncols*(xn-xmin)/(xmax-xmin)) + 1 # plus one since index starts at one
-                jj = floor(Int, nrows*(yn-ymin)/(ymax-ymin)) + 1
+                jj = nrows-floor(Int, nrows*(yn-ymin)/(ymax-ymin))
                 if xmin<=xn<=xmax && ymin<=yn<=ymax
                     # if the pixel doesn't have an assigned color we assign it the 
                     if assign_array[ii,jj] == -1 # while the orbit meets uncolored boxes it just adds them to the list
                         push!(color_pixels,(ii,jj))
                         count_orbit = 0
+                        BAP_count = 0
                         if !⭕️
                             assign_array[ii,jj] = index
                         else
                             assign_array[ii,jj] = index - 1
                         end
                     elseif assign_array[ii,jj] == index
+                        BAP_count = 0
                         if !⭕️ && (count_orbit < MC)
                             count_orbit += 1
                         elseif !⭕️ && (count_orbit >= MC)
@@ -197,6 +200,7 @@ function drawbasinsR2_NY(f::Function;
                             assign_array[ii,jj] = index - 1
                         end
                     elseif assign_array[ii,jj] == index - 1
+                        BAP_count = 0
                         count_orbit += 1
                         if count_orbit >= MC
                             basin_count += 1
@@ -204,11 +208,14 @@ function drawbasinsR2_NY(f::Function;
                             break
                         end
                     elseif !⭕️  && assign_array[ii,jj] % 2 == 1
-                        for pix in color_pixels
-                            assign_array[pix[1],pix[2]] = assign_array[ii,jj]
+                        BAP_count += 1
+                        if BAP_count>=BAP
+                            for pix in color_pixels
+                                assign_array[pix[1],pix[2]] = assign_array[ii,jj]
+                            end
+                            🛑 = true
+                            break
                         end
-                        🛑 = true
-                        break
                     elseif assign_array[ii,jj] % 2 == 0
                         for pix in color_pixels
                             assign_array[pix[1],pix[2]] = assign_array[ii,jj] + 1
@@ -282,24 +289,27 @@ function drawbasinsC_NY(f::Function;
             count_orbit = 0 # variable to keep track of repeating orbit
             ⭕️ = false # set to true once the routine changes for a periodic orbit
             iter_count = 0
+            BAP_count = 0
 
             assign_array[ii,jj] = index
 
             while !🛑 && iter_count < maxiterations
                 zn = f(zn)
                 ii = floor(Int, ncols*(real(zn)-xmin)/(xmax-xmin)) + 1 # plus one since index starts at one
-                jj = floor(Int, nrows*(imag(zn)-ymin)/(ymax-ymin)) + 1
+                jj = nrows-floor(Int, nrows*(imag(zn)-ymin)/(ymax-ymin))
                 if xmin<=real(zn)<=xmax && ymin<=imag(zn)<=ymax
                     # if the pixel doesn't have an assigned color we assign it the 
                     if assign_array[ii,jj] == -1 # while the orbit meets uncolored boxes it just adds them to the list
                         push!(color_pixels,(ii,jj))
                         count_orbit = 0
+                        BAP_count = 0
                         if !⭕️
                             assign_array[ii,jj] = index
                         else
                             assign_array[ii,jj] = index - 1
                         end
                     elseif assign_array[ii,jj] == index
+                        BAP_count = 0
                         if !⭕️ && (count_orbit < MC)
                             count_orbit += 1
                         elseif !⭕️ && (count_orbit >= MC)
@@ -311,6 +321,7 @@ function drawbasinsC_NY(f::Function;
                             assign_array[ii,jj] = index - 1
                         end
                     elseif assign_array[ii,jj] == index - 1
+                        BAP_count = 0
                         count_orbit += 1
                         if count_orbit >= MC
                             basin_count += 1
@@ -318,11 +329,15 @@ function drawbasinsC_NY(f::Function;
                             break
                         end
                     elseif !⭕️  && assign_array[ii,jj] % 2 == 1
-                        for pix in color_pixels
-                            assign_array[pix[1],pix[2]] = assign_array[ii,jj]
+                        if BAP_count<BAP
+                            BAP_count += 1
+                        else
+                            for pix in color_pixels
+                                assign_array[pix[1],pix[2]] = assign_array[ii,jj]
+                            end
+                            🛑 = true
+                            break
                         end
-                        🛑 = true
-                        break
                     elseif assign_array[ii,jj] % 2 == 0
                         for pix in color_pixels
                             assign_array[pix[1],pix[2]] = assign_array[ii,jj] + 1

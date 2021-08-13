@@ -239,7 +239,7 @@ function drawbasinsR2_BAP(f::Function;
     for i in 1:SDDGraphics.canvassize()[1]
         for j in 1:SDDGraphics.canvassize()[2]
             SDDGraphics.color(assign_array[i,j])
-            SDDGraphics.drawpixel(i,j)
+            SDDGraphics.drawpixel(i,SDDGraphics.canvassize()[1]-j+1) # due to how everything is defined abobe the y axis needs to be inverted...
         end
     end
     SDDGraphics.drawing()
@@ -361,7 +361,7 @@ function drawbasinsC_BAP(f::Function;
     for i in 1:SDDGraphics.canvassize()[1]
         for j in 1:SDDGraphics.canvassize()[2]
             SDDGraphics.color(assign_array[i,j])
-            SDDGraphics.drawpixel(i,j)
+            SDDGraphics.drawpixel(i,SDDGraphics.canvassize()[1]-j+1)
         end
     end
     SDDGraphics.drawing()

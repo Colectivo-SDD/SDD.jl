@@ -18,6 +18,7 @@ include("trappedpoints.jl")
 include("mandelbrots.jl")
 include("preimages.jl")
 include("basins.jl")
+include("SUmanifolds.jl")
 
 export
     plot,

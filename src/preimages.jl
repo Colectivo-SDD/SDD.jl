@@ -21,11 +21,14 @@ function drawpreimageR2(f::Function; iterations::Int=1)
     # Verifying functions
     @assert typeof(f(1., 1.)) <: Tuple{Real,Real}
 
+    @assert iterations > 0
+
     SDDGraphics.newdrawing()
-    SDDGraphics.updatecolorarray(iterations)
+    SDDGraphics.updatecolorarray(iterations+1)
 
     #fn = @iterativeR2 f iterations
     fn = foriterativeR2(f,iterations)
+    #fn = SDDCore.composeR2(f,iterations) # doesn't exists... yet
 
     @sweeprectregion SDDGraphics.xlims() SDDGraphics.ylims() SDDGraphics.canvassize() begin
         SDDGraphics.color(fn(x,y)...)
@@ -58,15 +61,17 @@ function drawpreimageC(f::Function; iterations::Int=1)
     # Verifying functions
     @assert typeof(f(1.0im)) <: Number
 
+    @assert iterations > 0
+
     SDDGraphics.newdrawing()
-    SDDGraphics.updatecolorarray(iterations)
+    SDDGraphics.updatecolorarray(iterations+1)
 
     #fn = @iterative f iterations
-    fn = foriterative(f,iterations)
+    #fn = foriterative(f,iterations)
+    fn = SDDCore.compose(f,iterations)
 
     @sweeprectregion SDDGraphics.xlims() SDDGraphics.ylims() SDDGraphics.canvassize() begin
-        z = complex(x,y)
-        SDDGraphics.color(fn(z))
+        SDDGraphics.color(fn(complex(x,y)))
         SDDGraphics.drawpixel(i,j)
     end # Implemented algorithm
 

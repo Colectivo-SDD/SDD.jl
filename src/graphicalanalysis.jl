@@ -38,6 +38,17 @@ function plot(f::Function; iterations::Int=1)
         xi0, yi0 = xi1, yi1
     end
 
+#= ToDo: Con compose queda así :-)
+fn = compose(f,iteraions)
+
+xi0, yi0 = x1, fn(x1)
+for i in 0:w
+    xi1 = x1 + i*Δx
+    yi1 = fn(xi1)
+    SDDGraphics.drawlinesegment(xi0,yi0,xi1,yi1)
+    xi0, yi0 = xi1, yi1
+end
+=#
     SDDGraphics.drawing()
 end
 
@@ -66,7 +77,7 @@ function graphicalanalysis(f::Function, x0::Real; iterations::Int=10)
     Δx = (x2-x1)/w
 
     # Plot of the function's graph
-    #SDDGraphics.color(SDDGraphics.fgcolor())
+    clr = SDDGraphics.color()
     xi0 = x1
     yi0 = f(x1)
     for i in 1:w
@@ -91,6 +102,8 @@ function graphicalanalysis(f::Function, x0::Real; iterations::Int=10)
         SDDGraphics.drawlinesegment(xi0,yi0,yi0,yi0)
         xi0 = yi0
     end
+
+    SDDGraphics.color(clr) # Restate the "current" color
 
     SDDGraphics.drawing()
 end

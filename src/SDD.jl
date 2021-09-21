@@ -40,6 +40,8 @@ export
     drawbasinsC,
     drawbasinsR2_BAP,
     drawbasinsC_BAP,
-    drawSUmanifolds
+    drawSUmanifoldsR2,
+    drawSmanifoldR2,
+    drawUmanifoldR2
 
 end # module

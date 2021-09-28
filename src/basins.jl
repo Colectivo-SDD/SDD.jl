@@ -34,7 +34,7 @@ function drawbasinsR2(f::Function, points::AbstractArray;
     SDDGraphics.updatecolorarray(num_colors)
 
     @sweeprectregion SDDGraphics.xlims() SDDGraphics.ylims() SDDGraphics.canvassize() begin
-        xn,yn = x,y
+        real(zn),yn = x,y
         escapetime = maxiterations
         index = num_colors
         for n in 1:maxiterations
@@ -123,5 +123,246 @@ function drawbasinsC(f::Function, points::AbstractArray;
         SDDGraphics.drawpixel(i,j)
     end # Implemented algorithm
 
+    SDDGraphics.drawing()
+end # function drawtrappedpointsR2
+
+"""
+    drawbasinsR2_BAP(f [; SD, MC, BAP, maxiterations])
+
+Return the drawing of the attracting or parabolic basins of given periodic
+points of a function \$f:\\mathbb{R}^2\\rightarrow\\mathbb{R}^2\$,
+in a rectangular region in \$\\mathbb{R}^2\$, using the BAP method described by Nusse & Yorke (1994).
+
+The attracting (parabolic) basin of a periodic point \$(x_0,y_0)\$ of period
+\$k\$ under \$f\$ is defined as
+\$\\mathcal{B}(x_0,y_0)=\\{(x,y)\\in\\mathbb{R}^2\\,|\\,|(f^k)^n(x,y)|\\rightarrow (x_0,y_0)\\,n\\rightarrow\\infty\\}\$
+
+#### Arguments
+- `f::Function`: A function \$f:\\mathbb{R}^2\\rightarrow\\mathbb{R}^2\$.
+- `SD::Int`: Number of screenwidths away from the origin before a point is considered to have escaped.
+- `MC::Int`: Number of iterations used to verify whether an orbit is periodic.
+- `maxiterations::Integer`: Maximum number of iterations to check.
+"""
+function drawbasinsR2_BAP(f::Function;
+    SD::Int=2, MC::Int=60, BAP::Int=1, maxiterations::Int=100000)
+
+    # Veryfying if graphics backend supports functions
+    SDDGraphics.supported(:drawpixel)
+
+    # Verifying functions
+    @assert typeof(f(1., 1.)) <: Tuple{Real,Real}
+
+    SDDGraphics.newdrawing()
+
+    assign_array = zeros(Int8,SDDGraphics.canvassize()) .- 1
+
+    basin_count = 1
+    @sweeprectregion SDDGraphics.xlims() SDDGraphics.ylims() SDDGraphics.canvassize() begin
+        ii = i
+        jj = j
+        if assign_array[ii,jj] == -1 # we leave the pixel as is if it is already colored
+            xn,yn = x,y
+            index = (basin_count * 2) + 1  # color 1 is reserved for the basin of ∞
+            color_pixels = [(ii,jj)]
+            🛑 = false # indicating whether routine has reached a stop point
+            count_orbit = 0 # variable to keep track of repeating orbit
+            ⭕️ = false # set to true once the routine changes for a periodic orbit
+            iter_count = 0 #
+            BAP_count = 0
+
+            assign_array[ii,jj] = index # provisionally color the pixel with index
+
+            while !🛑 && iter_count < maxiterations
+                xn, yn = f(xn,yn) # take next iteration
+                ii = floor(Int, ncols*(xn-xmin)/(xmax-xmin)) + 1 # plus one since index starts at one
+                jj = nrows - floor(Int, nrows*(yn-ymin)/(ymax-ymin)) # the minus is due to the way the @sweeprectregion macro works
+                if xmin<=xn<=xmax && ymin<=yn<=ymax # if the point is within the canvas
+                    if assign_array[ii,jj] == -1 # if pixel is uncolored
+                        push!(color_pixels,(ii,jj)) # add it to list 
+                        count_orbit = 0 # not consecutive index or index-1
+                        BAP_count = 0 # not consecutive other color
+                        if !⭕️
+                            assign_array[ii,jj] = index 
+                        else
+                            assign_array[ii,jj] = index - 1
+                        end
+                    elseif assign_array[ii,jj] == index # if pixel is already colored index
+                        BAP_count = 0
+                        if !⭕️ && (count_orbit < MC) # not yet enough consecutive index-colored pixels
+                            count_orbit += 1
+                        elseif !⭕️ && (count_orbit >= MC)
+                            ⭕️ = true
+                            count_orbit = 0
+                            assign_array[ii,jj] = index - 1
+                        else # routine is already in periodic orbit mode
+                            count_orbit = 0  
+                            assign_array[ii,jj] = index - 1
+                        end
+                    elseif assign_array[ii,jj] == index - 1 # if pixel is already colored (index-1) this means it is in periodic attracting orbit
+                        BAP_count = 0
+                        count_orbit += 1 # in this case count_orbit gets reused for to count consecutive (index-1)-colored pixels
+                        if count_orbit >= MC
+                            basin_count += 1
+                            🛑 = true
+                            break
+                        end
+                    elseif !⭕️  && assign_array[ii,jj] % 2 == 1 # if pixel is colored as the basin for some other attracting orbit
+                        BAP_count += 1 # orbit must meet BAP consecutive of these 
+                        if BAP_count>=BAP
+                            for pix in color_pixels
+                                assign_array[pix[1],pix[2]] = assign_array[ii,jj]
+                            end
+                            🛑 = true
+                            break
+                        end
+                    elseif assign_array[ii,jj] % 2 == 0 # if orbit encounters a pixel identified as another attracting orbit
+                        for pix in color_pixels
+                            assign_array[pix[1],pix[2]] = assign_array[ii,jj] + 1
+                        end
+                        🛑 = true
+                        break
+                    end
+                
+                elseif abs(xn-(xmax-xmin)/2)>SD*(xmax-xmin) || abs(yn-(ymax-ymin)/2)>SD*(ymax-ymin) # if point is SD screens away from the center of interest region it is colored as the basin of ∞
+
+                    for pix in color_pixels
+                        assign_array[pix[1],pix[2]] = 1
+                    end
+                    🛑 = true
+                    break
+                end
+                iter_count += 1
+            end
+        end
+    end # Implemented algorithm
+    SDDGraphics.updatecolorarray(basin_count*2 + 1)
+    for i in 1:SDDGraphics.canvassize()[1]
+        for j in 1:SDDGraphics.canvassize()[2]
+            SDDGraphics.color(assign_array[i,j])
+            SDDGraphics.drawpixel(i,SDDGraphics.canvassize()[1]-j+1) # due to how everything is defined abobe the y axis needs to be inverted...
+        end
+    end
+    SDDGraphics.drawing()
+end # function drawtrappedpointsR2
+
+"""
+    drawbasinsC_BAP(f [; SD, MC, BAP, maxiterations])
+
+Return the drawing of the attracting or parabolic basins of given periodic
+points of a function \$f:\\mathbb{C}\\rightarrow\\mathbb{C}\$,
+in a rectangular region in \$\\mathbb{C}\$, using the BAP method described by Nusse & Yorke (1994).
+
+The attracting (parabolic) basin of a periodic point \$z_0\$ of period
+\$k\$ under \$f\$ is defined as
+\$\\mathcal{B}(z_0)=\\{z\\in\\mathbb{C}\\,|\\,|(f^k)^n(z)|\\rightarrow z_0\\,n\\rightarrow\\infty\\}\$
+
+#### Arguments
+- `f::Function`: A function \$f:\\mathbb{C}\\rightarrow\\mathbb{C}\$.
+- `SD::Int`: Number of screenwidths away from the origin before a point is considered to have escaped.
+- `MC::Int`: Number of iterations used to verify whether an orbit is periodic.
+- `BAP::Int`: Number of iterations used to verify whether an orbit falls in another basin.
+- `maxiterations::Integer`: Maximum number of iterations to check.
+"""
+function drawbasinsC_BAP(f::Function;
+    SD::Int=2, MC::Int=60, BAP::Int=6, maxiterations::Int=100000)
+
+    # Veryfying if graphics backend supports functions
+    SDDGraphics.supported(:drawpixel)
+
+    # Verifying functions
+    @assert typeof(f(.1im)) <: Number
+
+    SDDGraphics.newdrawing()
+
+    assign_array = zeros(Int8,SDDGraphics.canvassize()) .- 1
+
+    basin_count = 1
+    @sweeprectregion SDDGraphics.xlims() SDDGraphics.ylims() SDDGraphics.canvassize() begin
+        ii = i
+        jj = j
+        if assign_array[ii,jj] == -1
+            zn = complex(x,y)
+            index = (basin_count * 2) + 1  # color 1 is reserved for the basin of ∞
+            color_pixels = [(ii,jj)]
+            🛑 = false # indicating whether routine has reached a stop point
+            count_orbit = 0 # variable to keep track of repeating orbit
+            ⭕️ = false # set to true once the routine changes for a periodic orbit
+            iter_count = 0
+            BAP_count = 0
+
+            assign_array[ii,jj] = index
+
+            while !🛑 && iter_count < maxiterations
+                zn = f(zn)
+                ii = floor(Int, ncols*(real(zn)-xmin)/(xmax-xmin)) + 1 # plus one since index starts at one
+                jj = nrows-floor(Int, nrows*(imag(zn)-ymin)/(ymax-ymin))
+                if xmin<=real(zn)<=xmax && ymin<=imag(zn)<=ymax
+                    # if the pixel doesn't have an assigned color we assign it the 
+                    if assign_array[ii,jj] == -1 # while the orbit meets uncolored boxes it just adds them to the list
+                        push!(color_pixels,(ii,jj))
+                        count_orbit = 0
+                        BAP_count = 0
+                        if !⭕️
+                            assign_array[ii,jj] = index
+                        else
+                            assign_array[ii,jj] = index - 1
+                        end
+                    elseif assign_array[ii,jj] == index
+                        BAP_count = 0
+                        if !⭕️ && (count_orbit < MC)
+                            count_orbit += 1
+                        elseif !⭕️ && (count_orbit >= MC)
+                            ⭕️ = true
+                            count_orbit = 0
+                            assign_array[ii,jj] = index - 1
+                        else
+                            count_orbit = 0  
+                            assign_array[ii,jj] = index - 1
+                        end
+                    elseif assign_array[ii,jj] == index - 1
+                        BAP_count = 0
+                        count_orbit += 1
+                        if count_orbit >= MC
+                            basin_count += 1
+                            🛑 = true
+                            break
+                        end
+                    elseif !⭕️  && assign_array[ii,jj] % 2 == 1
+                        if BAP_count<BAP
+                            BAP_count += 1
+                        else
+                            for pix in color_pixels
+                                assign_array[pix[1],pix[2]] = assign_array[ii,jj]
+                            end
+                            🛑 = true
+                            break
+                        end
+                    elseif assign_array[ii,jj] % 2 == 0
+                        for pix in color_pixels
+                            assign_array[pix[1],pix[2]] = assign_array[ii,jj] + 1
+                        end
+                        🛑 = true
+                        break
+                    end
+                
+                elseif abs(real(zn)-(xmax-xmin)/2)>SD*(xmax-xmin) || abs(imag(zn)-(ymax-ymin)/2)>SD*(ymax-ymin)
+
+                    for pix in color_pixels
+                        assign_array[pix[1],pix[2]] = 1
+                    end
+                    🛑 = true
+                    break
+                end
+                iter_count += 1
+            end
+        end
+    end # Implemented algorithm
+    SDDGraphics.updatecolorarray(basin_count*2 + 1)
+    for i in 1:SDDGraphics.canvassize()[1]
+        for j in 1:SDDGraphics.canvassize()[2]
+            SDDGraphics.color(assign_array[i,j])
+            SDDGraphics.drawpixel(i,SDDGraphics.canvassize()[1]-j+1)
+        end
+    end
     SDDGraphics.drawing()
 end # function drawtrappedpointsR2

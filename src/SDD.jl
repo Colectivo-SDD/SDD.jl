@@ -5,6 +5,7 @@ or Discrete Dynamical Systems.
 """
 module SDD
 
+using Base: iterate_continued
 using Reexport
 
 @reexport using SDDCore, SDDGeometry, SDDGraphics
@@ -18,6 +19,7 @@ include("trappedpoints.jl")
 include("mandelbrots.jl")
 include("preimages.jl")
 include("basins.jl")
+include("SUmanifolds.jl")
 
 export
     plot,
@@ -37,6 +39,11 @@ export
     drawpreimageR2,
     drawpreimageC,
     drawbasinsR2,
-    drawbasinsC
+    drawbasinsC,
+    drawbasinsR2_BAP,
+    drawbasinsC_BAP,
+    drawSUmanifoldsR2,
+    drawSmanifoldR2,
+    drawUmanifoldR2
 
 end # module

@@ -16,6 +16,7 @@ SDDCore = "8f913c48-6887-4730-b137-e2c711b5bdd3"
 SDDGeometry = "a6bfdfb4-bfc7-488f-8e1d-c7ae636f08ae"
 SDDGraphics = "304806c1-f3a4-495b-9174-80ddb4fc0831"
 Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"

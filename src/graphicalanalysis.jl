@@ -1,6 +1,6 @@
 
 """
-    plot(f [; iterations])
+    plot(f [; iterations, identity])
 
 Plot the graph of the \$n\$-th iterative of a function
 \$f:\\mathbb{R}\\rightarrow\\mathbb{R}\$.
@@ -8,19 +8,30 @@ Plot the graph of the \$n\$-th iterative of a function
 #### Arguments
 - `f::Function`: Function \$f:\\mathbb{R}\\rightarrow\\mathbb{R}\$.
 - `iterations::Int`: Number of iterations to calculate the iterative \$f^n\$.
+- `identity::Bool`: Draw the identity graph if true.
 """
-function plot(f::Function; iterations::Int=1)
+function plot(f::Function; iterations::Int=1, identity::Bool=true)
     SDDGraphics.supported(:drawlinesegment)
 
     # Verifying functions
     @assert typeof(f(1.)) <: Real
 
     SDDGraphics.newdrawing()
-    #SDDGraphics.color(SDDGraphics.fgcolor())
 
     x1, x2 = SDDGraphics.xlims()
     w = SDDGraphics.width()
     Δx = (x2-x1)/w
+
+    # Plot the graph of the identity
+    if identity
+        clr = SDDGraphics.color()
+        SDDGraphics.color(RGB(0.5,0.5,0.5))
+        y1, y2 = SDDGraphics.ylims()
+        xmin = min(x1,y1)
+        xmax = max(x2,y2)
+        SDDGraphics.drawlinesegment(xmin,xmin,xmax,xmax)
+        SDDGraphics.color(clr) # Restate the "current" color
+    end
 
     xi0 = x1
     yi0 = xi0
@@ -62,8 +73,10 @@ the the graphical analysis of the orbit of \$x_0\$.
 - `f::Function`: Function \$f:\\mathbb{R}\\rightarrow\\mathbb{R}\$.
 - `x0::Real`: Initial point for the orbit.
 - `iterations::Int`: Number of iterations to calculate the orbit of \$x_0\$.
+- `identity::Bool`: Draw the identity graph if true.
 """
-function graphicalanalysis(f::Function, x0::Real; iterations::Int=10)
+function graphicalanalysis(f::Function, x0::Real;
+    iterations::Int=10, identity=true, basepoint=true)
     SDDGraphics.supported(:drawlinesegment)
 
     # Verifying functions
@@ -88,13 +101,20 @@ function graphicalanalysis(f::Function, x0::Real; iterations::Int=10)
     end
 
     # Plot the graph of the identity
-    SDDGraphics.color(RGB(0.5,0.5,0.5))
-    xi0 = min(x1,y1)
-    xi1 = max(x2,y2)
-    SDDGraphics.drawlinesegment(xi0,xi0,xi1,xi1)
+    if identity
+        SDDGraphics.color(RGB(0.5,0.5,0.5))
+        xi0 = min(x1,y1)
+        xi1 = max(x2,y2)
+        SDDGraphics.drawlinesegment(xi0,xi0,xi1,xi1)
+    end
 
     # Graphical analysis of the orbit of x0
     SDDGraphics.color(RGB(1,0,0))
+
+    if basepoint
+        SDDGraphics.drawlinesegment(x0,0,x0,x0)
+    end
+
     xi0 = x0
     for i in 1:iterations
         yi0 = f(xi0)

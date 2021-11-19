@@ -284,7 +284,7 @@ function drawpointorbitpathC(f::Function, z0::Number;
 end # function drawpointorbitpathC
 
 """
-    drawpointorbitpathR(f, x0, y0 [; preiterations, iterations])
+    drawpointorbitpathR(f, x0 [; preiterations, iterations])
 
 Return the drawing of the orbit's arc-path of a point \$x_0\$ under a function
 \$f:\\mathbb{R}\\rightarrow\\mathbb{R}\$.
@@ -295,7 +295,6 @@ The orbit of \$x_0\$ under \$f\$ is defined as
 #### Arguments
 - `f::Function`: A function \$f:\\mathbb{R}^2\\rightarrow\\mathbb{R}^2\$.
 - `x0::Real`: X coordinate of the point.
-- `y0::Real`: Y coordinate of the point.
 - `preiterations::Integer`: Number of first iterations to calculate but not to draw.
 - `iterations::Integer`: Number of iterations to calculate (after `preiterations`).
 """

@@ -38,6 +38,8 @@ export
     drawmandelbrotC,
     drawpreimageR2,
     drawpreimageC,
+    drawpreimageperiodicsR2,
+    drawpreimageperiodicsC,
     drawbasinsR2,
     drawbasinsC,
     drawbasinsR2_BAP,

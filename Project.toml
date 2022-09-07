@@ -3,8 +3,7 @@ uuid = "e2596206-8c5a-4a2a-ac4a-ff6ba1dc0f42"
 authors = [
   "Renato Leriche Vázquez <r_lerichev@ciencias.unam.mx>",
   "Luis Muñiz",
-  "Edgar Rodriguez",
-  "Daniel Blancas"
+  "Ian Xul Belaustegui"
 ]
 version = "0.1.0"
 
@@ -17,6 +16,8 @@ SDDGeometry = "a6bfdfb4-bfc7-488f-8e1d-c7ae636f08ae"
 SDDGraphics = "304806c1-f3a4-495b-9174-80ddb4fc0831"
 Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
+Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"

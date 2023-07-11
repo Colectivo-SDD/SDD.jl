@@ -68,7 +68,7 @@ function drawpreimageC(f::Function; iterations::Int=1)
 
     #fn = @iterative f iterations
     #fn = foriterative(f,iterations)
-    fn = SDDCore.compose(f,iterations)
+    fn = SDDCore.iterative(f,iterations)
 
     @sweeprectregion SDDGraphics.xlims() SDDGraphics.ylims() SDDGraphics.canvassize() begin
         SDDGraphics.color(fn(complex(x,y)))

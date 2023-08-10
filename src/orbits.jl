@@ -1,5 +1,161 @@
 
 """
+    orbithpath(f, p0 [; hidediterations, iterations, coloring])
+
+Plots the orbit of a point \$p_0\$ (or set of points) under a function
+    \$f:\\mathbb{C}\\rightarrow\\mathbb{C}\$
+    or
+    \$f:\\mathbb{R}^2\\rightarrow\\mathbb{R}^2\$
+    or
+    \$f:\\mathbb{R}^3\\rightarrow\\mathbb{R}^3\$
+    where consecutive points are connected by a line segment (or optionally not).
+
+The orbit of \$p_0\$ under \$f\$ is defined as
+    \$o(p_0,f)=\\{p_0,f(p_0),f^2(p_0),\\dots,f^n(p_0),\\dots\\}\$
+
+#### Arguments
+- `f::Function`: A function \$f:\\mathbb{R}^2\\rightarrow\\mathbb{R}^2\$.
+- `p0`: A point or set of points.
+- `hidediterations::Integer`: Number of first iterations to calculate but not to draw.
+- `iterations::Integer`: Number of iterations to calculate (after `hidediterations`).
+- `coloring::Symbol=:time`:
+  - `:orbit`: Different colors for each orbit.
+  - `:time`: Different colors for each time.
+  - `:unique`: Unique color.
+"""
+@recipe(OrbitPath) do scene
+  Attributes(
+    iterations = 20,
+    hidediterations = 0,
+    coloring = :time
+  )
+end
+
+function Makie.plot!(plt::OrbitPath{<:Tuple{Function, Any}})
+  # Recipe attributes
+  obs_f = plt[1]
+  f = obs_f[] # Function
+  #@assert typeof(f(1.)) <: Real # Function verification
+  topt = topoint2f
+  PtType = Point2f
+
+  obs_p0 = plt[2]
+  p0 = obs_p0[]
+  p0s = []
+  if p0 isa Number # A unique initial complex number
+    p0s = ComplexF64[]
+    push!(p0s, p0)
+  elseif p0[1] isa Real # A unique initial array
+    push!(p0s, p0)
+    if length(p0) > 2
+      topt = topoint3f
+      PtType = Point3f
+    end
+  else # A set of points (complex or array)
+    p0s = collect(obs_p0[])
+    if p0s[1] isa Array && length(p0s[1]) > 2
+      topt = topoint3f
+      PtType = Point3f
+    end
+  end
+  nvals = length(p0s) # Number of inital values
+
+  # Plot keyword arguments
+  nits = plt.iterations[]
+  nhits = plt.hidediterations[]
+  clrn = plt.coloring[]
+
+  # Hided iterations, not to to be drawn
+  if nhits > 0 
+    for k in 1:nvals
+      for n in 1:nhits
+        p0s[k] = f(p0s[k])
+      end
+    end
+  end
+
+  # Initial observable arrays for interaction
+  obs_pns = [ Observable( PtType[] ) for k in 1:nvals ]
+  for k in 1:nvals
+    push!(obs_pns[k][], topt(p0s[k]) )
+  end
+
+  # Iterations, to be drawn
+  for k in 1:nvals
+    kps = obs_pns[k][]
+    for n in 1:nits
+      p0s[k] = f(p0s[k])
+      push!(kps, topt(p0s[k]) ) # Saving array of PointNf
+    end
+  end
+
+  # Coloring
+  funcolor = k::Int -> RGBA(0,0,0) # Default
+  if haskey(plt, :color)
+    funcolor = k::Int -> plt.color[] # Unique
+  end
+  if clrn == :orbit
+    pltcm = haskey(plt.attributes.attributes, :colormap) ? plt.colormap[] : :viridis
+    cm = pltcm isa Symbol ? colorschemes[pltcm] : ColorScheme(pltcm)
+    if nvals > 1
+      cmarr = [ cm[k/(nvals-1)] for k in 0:(nvals-1) ]
+      funcolor = k::Int -> cmarr[k]
+    else
+      c0 = cm[0.0]
+      funcolor = k::Int -> c0
+    end
+  elseif clrn == :time
+    funcolor = k::Int -> 0:nits 
+  end
+
+  # Remove non Makie keyword arguments to avoid errors
+  delete!(plt.attributes.attributes, :iterations)
+  delete!(plt.attributes.attributes, :hidediterations)
+  delete!(plt.attributes.attributes, :coloring)
+
+  # Drawing the iterations
+  #obs_tns = Observable( nhits:(nhits+nits) )
+
+  for k in 1:nvals
+    scatterlines!(plt, obs_pns[k];
+      plt.attributes.attributes..., color = funcolor(k))
+  end
+
+  plt 
+end
+
+
+#=
+function drawpointorbitR2(f::Function, x0::Real, y0::Real;
+    preiterations::Integer=0, iterations::Integer=100)
+
+    # Verifying functions
+    #@assert typeof(f(1., 1.)) <: Tuple{Real,Real}
+
+    SDDGraphics.newdrawing()
+    SDDGraphics.updatecolorarray(iterations)
+
+    xn,yn = x0,y0
+
+    for n in 1:preiterations
+        xn,yn = f(xn,yn)
+    end # for n preiterations
+
+    for n in 1:iterations
+        if SDDGraphics.insiderectregion(xn,yn)
+            SDDGraphics.color(n)
+            SDDGraphics.drawpoint(xn,yn)
+        end # if
+        xn,yn = f(xn,yn)
+    end # for n iterations
+
+    SDDGraphics.drawing()
+
+end # function drawpointorbitR2
+=#
+
+#=
+"""
     drawpointorbitR2(f, x0, y0 [; preiterations, iterations])
 
 Return the drawing of the orbit of a point \$(x_0,y_0)\$ under a function
@@ -325,3 +481,5 @@ function drawpointorbitpathR(f::Function, x0::Real;
     SDDGraphics.drawing()
 
 end # function drawpointorbitpathR2
+
+=#

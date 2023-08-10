@@ -2,7 +2,7 @@
 """
 Implementation of the attracting orbits bifurcation diagram for a family of real functions.
 """
-function matrixaobifdiagram(ff::Function,
+function matrixattrbifdiagram(ff::Function,
     ts::AbstractVector{<:Real}, xs::AbstractVector{<:Real},
     x0::Union{Real,Nothing} = nothing;
     hidediterations::Int = 200, iterations::Int = 2000,
@@ -48,9 +48,9 @@ end
 
 
 """
-    imgaobifdiagram(ff, ts, xs, x0[; kwargs])
+    imgattrbifdiagram(ff, ts, xs, x0[; kwargs])
 
-The same as `plotaobifdiagram`.
+The same as `attrbifdiagram`.
 
 #### Notes
 - This is the "classic" bifurcation diagram.
@@ -59,7 +59,7 @@ The same as `plotaobifdiagram`.
 #### Aditional Keyword Arguments
 - `colormap::Union{Symbol, Vector{Colorant}} = :viridis`: Colormap.
 """
-function imgaobifdiagram(ff::Function,
+function imgattrbifdiagram(ff::Function,
   ts::AbstractVector{<:Real}, xs::AbstractVector{<:Real},
   x0::Union{Real,Nothing} = nothing;
   hidediterations::Int = 200, iterations::Int = 2000,
@@ -74,14 +74,15 @@ function imgaobifdiagram(ff::Function,
   colors = iterations > 1 ? [ cm[k/(iterations-1)] for k in 0:(iterations-1) ] : [cm[0.0]]
 
   # Return the image (matrix of colors)
-  matrixaobifdiagram(ff, ts, xs, x0,
+  matrixattrbifdiagram(ff, ts, xs, x0,
     iterations = iterations, hidediterations = hidediterations,
     rot90 = true, value = k::Int -> colors[k], fillvalue = bgcolor)
 end
 
 
+#=
 """
-    plotimgaobifdiagram(ff, ts, xs, x0[; kwargs])
+    attrbifdiagram(ff, ts, xs, x0[; kwargs])
 
 The same as `plotaobifdiagram`.
 
@@ -138,18 +139,18 @@ function Makie.plot!(
   
   plt
 end
-
+=#
 
 """
-    plotaobifdiagram(ifs, ts, xs, x0[; kwargs])
+    attrbifdiagram(ifs, ts, xs, x0[; kwargs])
 
-Plot the **A**ttracting **O**rbit **Bif**urcation **Diagram** of a family of funcions
+Plot the **Attr**acting orbits **Bif**urcation **Diagram** of a family of funcions
 
 \$\\{f_t:\\mathbb{R}\\rightarrow\\mathbb{R}\\}_\\{t\\in [a,b]\\}\$
 
 #### Notes
 - This is the "classic" bifurcation diagram.
-- Using the **Makie**'s `heatmap` plot.
+- Using the **Makie**'s `heatmap` or `image` plot.
 
 #### Arguments
 - `ff::Function`: A family of functions \$f:[a,b]\\times\\mathbb{R}\\rightarrow\\mathbb{R}\$.
@@ -160,19 +161,21 @@ Plot the **A**ttracting **O**rbit **Bif**urcation **Diagram** of a family of fun
 #### Keyword Arguments
 - `iterations::Int = 1000`: Iterations for drawing.
 - `hidediterations::Int = 10`: Iterations without drawing.
-- `bgcolor = RGB(1,1,1)`: Background color.
+- `bgcolor=RGB(1,1,1)`: Background color.
+- `plotstyle=:image`: Type of plot, `:heatmap` or `:image`.
 """
-@recipe(PlotAOBifDiagram) do scene
+@recipe(AttrBifDiagram) do scene
   Attributes(
     iterations = 2000,
     hidediterations = 200,
-    bgcolor = RGBA(1,1,1,0)
+    bgcolor = RGBA(1,1,1,0),
+    plotstyle = :image
   )
 end
 
 function Makie.plot!(
-  plt::PlotAOBifDiagram{<:Tuple{Function,
-  AbstractVector{<:Real}, AbstractVector{<:Real}, Real} })
+  plt::AttrBifDiagram{<:Tuple{Function,
+  AbstractVector{<:Real}, AbstractVector{<:Real}, Any} })
 
   # Recipe attributes
   ff = plt[1][]
@@ -186,6 +189,7 @@ function Makie.plot!(
   nits = plt.iterations[]
   nhits = plt.hidediterations[]
   bgc = plt.bgcolor[]
+  pltsty = plt.plotstyle[]
 
   # Coloring
   pltcm = [RGBA(0,0,0,0.75)]
@@ -194,23 +198,36 @@ function Makie.plot!(
   end
   cm = typeof(pltcm) == Symbol ? colorschemes[pltcm] : ColorScheme(pltcm)
   colors = nits > 1 ? [ RGBA(cm[k/(nits-1)],1) for k in 0:(nits-1) ] : [ RGBA(cm[0.0],1) ]
-  pushfirst!(colors, bgc)
+  if pltsty != :image
+    pushfirst!(colors, bgc)
+  end
 
   # Remove non Makie keyword arguments to avoid errors
   delete!(plt.attributes.attributes, :iterations)
   delete!(plt.attributes.attributes, :hidediterations)
+  delete!(plt.attributes.attributes, :bgcolor)
+  delete!(plt.attributes.attributes, :plotstyle)
 
   # Plot
-  heatmap!(plt, obs_ts, obs_xs,
-    matrixaobifdiagram(ff, ts, xs, x0,
-      iterations = nits, hidediterations = nhits,
-      value = k::Int -> k, fillvalue=0);
-    plt.attributes.attributes..., colormap=colors)
+  if pltsty == :image
+    image!(plt, obs_ts, obs_xs,
+      matrixattrbifdiagram(ff, ts, xs, x0,
+        iterations = nits, hidediterations = nhits,
+        value = k::Int -> colors[k], fillvalue=bgc);
+      plt.attributes.attributes...)
+  else # :heatmap
+    heatmap!(plt, obs_ts, obs_xs,
+      matrixattrbifdiagram(ff, ts, xs, x0,
+        iterations = nits, hidediterations = nhits,
+        value = k::Int -> k, fillvalue=0);
+      plt.attributes.attributes..., colormap=colors)
+  end
   
   plt
 end
 
 
+#=
 """
     iplotaobifdiagram([g], f, ts, xs, x0 [; iterations, hidediterations, bgcolor, colormap])
 
@@ -241,18 +258,19 @@ iplotaobifdiagram(ff::Function, ts, xs, x0; iterations=1, hidediterations=200, b
   xplotaobifdiagram(iheatmap, ff, ts, xs, x0; iterations=iterations, hidediterations=hidediterations, bgcolor=bgcolor, colormap=colormap, kwargs...)
 iplotaobifdiagram(g, ff::Function, ts, xs, x0; iterations=1, hidediterations=200, bgcolor=RGBA(1,1,1,0), colormap=:viridis, kwargs...) =
   xplotaobifdiagram(iheatmap, ff, ts, xs, x0, g; iterations=iterations, hidediterations=hidediterations, bgcolor=bgcolor, colormap=colormap, kwargs...)
+=#
 
 
 """
-    plotscatteraobifdiagram(ff, ts, xs, x0[; kwargs])
+    scatterattrbifdiagram(ff, ts, xs, x0[; kwargs])
 
-The same as `plotaobifdiagram`.
+The same as `attrbifdiagram`.
 
 #### Notes
 - This is the "classic" bifurcation diagram.
 - Using **Makie**'s `scatter` plot.
 """
-@recipe(PlotScatterAOBifDiagram) do scene
+@recipe(ScatterAttrBifDiagram) do scene
   Attributes(
     iterations = 2000,
     hidediterations = 200,
@@ -261,8 +279,8 @@ The same as `plotaobifdiagram`.
 end
 
 function Makie.plot!(
-  plt::PlotScatterAOBifDiagram{<:Tuple{Function,
-  AbstractVector{<:Real}, AbstractVector{<:Real}, Real} })
+  plt::ScatterAttrBifDiagram{<:Tuple{Function,
+  AbstractVector{<:Real}, AbstractVector{<:Real}, Any} })
 
   # Recipe attributes
   ff = plt[1][]
@@ -326,11 +344,11 @@ function Makie.plot!(
 end
 
 """
-    iplotscatteraobifdiagram([g], f, ts, xs, x0 [; iterations, hidediterations, bgcolor, colormap])
+    iscatterattrbifdiagram([g], f, ts, xs, x0 [; iterations, hidediterations, bgcolor, colormap])
 
-The same as `plotscatteraobifdiagram`, but adapted to the **InteractiveViz** pipeline for interactive data sampling.
+The same as `scatterattrbifdiagram`, but adapted to the **InteractiveViz** pipeline for interactive data sampling.
 """
-function xplotscatteraobifdiagram(pltf::Function, ff::Function, ts::AbstractVector{<:Real}, xs::AbstractVector{<:Real},
+function xscatterattrbifdiagram(pltf::Function, ff::Function, ts::AbstractVector{<:Real}, xs::AbstractVector{<:Real},
   x0::Real, g=nothing; iterations=2000, hidediterations=200, markersize=0.01, kwargs...)
 
   rr = RectRegion(ts, xs)
@@ -367,14 +385,14 @@ function xplotscatteraobifdiagram(pltf::Function, ff::Function, ts::AbstractVect
     pltf(g, tns, xns; markersize=markersize, kwargs...)
 end
 
-iplotscatteraobifdiagram(ff::Function, ts, xs, x0; iterations=2000, hidediterations=200, markersize=0.01, kwargs...) =
-  xplotscatteraobifdiagram(iscatter, ff, ts, xs, x0; iterations=iterations, hidediterations=hidediterations, markersize=0.01, kwargs...)
-iplotscatteraobifdiagram(g, ff::Function, ts, xs, x0; iterations=2000, hidediterations=200, markersize=0.01, kwargs...) =
-  xplotscatteraobifdiagram(iscatter, ff, ts, xs, x0, g; iterations=iterations, hidediterations=hidediterations, markersize=0.01, kwargs...)
-iplotscatteraobifdiagram!(ff::Function, ts, xs, x0; iterations=2000, hidediterations=200, markersize=0.01, kwargs...) =
-  xplotscatteraobifdiagram(iscatter!, ff, ts, xs, x0; iterations=iterations, hidediterations=hidediterations, markersize=0.01, kwargs...)
-iplotscatteraobifdiagram!(g, ff::Function, ts, xs, x0; iterations=2000, hidediterations=200, markersize=0.01, kwargs...) =
-  xplotscatteraobifdiagram(iscatter!, ff, ts, xs, x0, g; iterations=iterations, hidediterations=hidediterations, markersize=0.01, kwargs...)
+iscatterattrbifdiagram(ff::Function, ts, xs, x0; iterations=2000, hidediterations=200, markersize=0.01, kwargs...) =
+  xscatterattrbifdiagram(iscatter, ff, ts, xs, x0; iterations=iterations, hidediterations=hidediterations, markersize=0.01, kwargs...)
+iscatterattrbifdiagram(g, ff::Function, ts, xs, x0; iterations=2000, hidediterations=200, markersize=0.01, kwargs...) =
+  xscatterattrbifdiagram(iscatter, ff, ts, xs, x0, g; iterations=iterations, hidediterations=hidediterations, markersize=0.01, kwargs...)
+iscatterattrbifdiagram!(ff::Function, ts, xs, x0; iterations=2000, hidediterations=200, markersize=0.01, kwargs...) =
+  xscatterattrbifdiagram(iscatter!, ff, ts, xs, x0; iterations=iterations, hidediterations=hidediterations, markersize=0.01, kwargs...)
+iscatterattrbifdiagram!(g, ff::Function, ts, xs, x0; iterations=2000, hidediterations=200, markersize=0.01, kwargs...) =
+  xscatterattrbifdiagram(iscatter!, ff, ts, xs, x0, g; iterations=iterations, hidediterations=hidediterations, markersize=0.01, kwargs...)
 
 #=
 """

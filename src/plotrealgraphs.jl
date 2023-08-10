@@ -1,10 +1,10 @@
 
 #
-# Plot (nth-Iterate Function) Graph
+# Plot (nth-Iterate) Func(tion) Graph
 #
 
 """
-    plotgraph(f, xs [; iterations])
+    funcgraph(f, xs [; iterations])
 
 Plot the graph of the n-th iterate of a function
 \$f:\\mathbb{R}\\rightarrow\\mathbb{R}\$.
@@ -16,13 +16,13 @@ Plot the graph of the n-th iterate of a function
 #### Keyword Arguments
 - `iterations::Int`: Number of iterations to calculate \$f^n\$.
 """
-@recipe(PlotGraph) do scene
+@recipe(FuncGraph) do scene
   Attributes(
     iterations = 1
   )
 end
 
-function Makie.plot!(plt::PlotGraph{<:Tuple{Function, Any}})
+function Makie.plot!(plt::FuncGraph{<:Tuple{Function, Any}})
   # Recipe attributes
   obs_f = plt[1]
   f = obs_f[] # Function
@@ -30,7 +30,7 @@ function Makie.plot!(plt::PlotGraph{<:Tuple{Function, Any}})
 
   # Remove non Makie keyword arguments to avoid errors
   delete!(plt.attributes.attributes, :iterations)
-
+  
   # Plot the nth-iterate of f
   lines!(plt, plt[2], obs_fn; plt.attributes.attributes...)
 
@@ -38,11 +38,11 @@ function Makie.plot!(plt::PlotGraph{<:Tuple{Function, Any}})
 end
 
 """
-    iplotgraph([g], f, xs [; iterations])
+    ifuncgraph([g], f, xs [; iterations])
 
-The same as `plotgraph`, but adapted to the **InteractiveViz** pipeline for interactive data sampling.
+The same as `funcgraph`, but adapted to the **InteractiveViz** pipeline for interactive data sampling.
 """
-function xplotgraph(pltf::Function, f::Function, xs, g=nothing; iterations=1, kwargs...)
+function xfuncgraph(pltf::Function, f::Function, xs, g=nothing; iterations=1, kwargs...)
   xmin, xmax = xs isa AbstractInterval ? (xs.left, xs.right) : (xs[1], xs[end])
   fn = iteratef(f, iterations)
   #vizf = isnothing(g) ? (x, y) -> pltf(x, y; kwargs...) : (x, y) -> pltf(g, x, y; kwargs...)
@@ -50,22 +50,22 @@ function xplotgraph(pltf::Function, f::Function, xs, g=nothing; iterations=1, kw
   isnothing(g) ? pltf(fn, xmin, xmax; kwargs...) : pltf(g, fn, xmin, xmax; kwargs...)
 end
 
-iplotgraph(f::Function, xs; iterations=1, kwargs...) =
-  xplotgraph(ilines, f, xs; iterations=iterations, kwargs...)
-iplotgraph(g, f::Function, xs; iterations=1, kwargs...) =
-  xplotgraph(ilines, f, xs, g; iterations=iterations, kwargs...)
-iplotgraph!(f::Function, xs; iterations=1, kwargs...) =
-  xplotgraph(ilines!, f, xs; iterations=iterations, kwargs...)
-iplotgraph!(g, f::Function, xs; iterations=1, kwargs...) =
-  xplotgraph(ilines!, f, xs, g; iterations=iterations, kwargs...)
+ifuncgraph(f::Function, xs; iterations=1, kwargs...) =
+  xfuncgraph(ilines, f, xs; iterations=iterations, kwargs...)
+ifuncgraph(g, f::Function, xs; iterations=1, kwargs...) =
+  xfuncgraph(ilines, f, xs, g; iterations=iterations, kwargs...)
+ifuncgraph!(f::Function, xs; iterations=1, kwargs...) =
+  xfuncgraph(ilines!, f, xs; iterations=iterations, kwargs...)
+ifuncgraph!(g, f::Function, xs; iterations=1, kwargs...) =
+  xfuncgraph(ilines!, f, xs, g; iterations=iterations, kwargs...)
 
 
 #
-# Plot Tangent
+# Plot a Func(tion) Tangent (Line)
 #
 
 """
-    plottangent(f, x0, xs [; iterations])
+    functangent(f, x0, xs [; iterations])
 
 Plot the tangent line to the graph of the \$n\$-th iteration of a function
 \$f:\\mathbb{R}\\rightarrow\\mathbb{R}\$, at the point \$(x_0, f(x_0))\$
@@ -78,13 +78,13 @@ Plot the tangent line to the graph of the \$n\$-th iteration of a function
 #### Keyword Arguments
 - `iterations::Int`: Number of iterations to calculate the iterative \$f^n\$.
 """
-@recipe(PlotTangent) do scene
+@recipe(FuncTangent) do scene
   Attributes(
     iterations = 1
   )
 end
 
-function Makie.plot!(plt::PlotTangent{<:Tuple{Function, Real, Any}})
+function Makie.plot!(plt::FuncTangent{<:Tuple{Function, Real, Any}})
   # Recipe attributes
   obs_f = plt[1]
   f = obs_f[] # Function
@@ -102,13 +102,13 @@ function Makie.plot!(plt::PlotTangent{<:Tuple{Function, Real, Any}})
   y0 = fn(x0)
   delta = 0.00001
   m = (fn(x0+delta) - fn(x0-delta))/(2delta)
-  ys = [ y0 + m*(xmin - x0), y0 + m*(xmax - x0) ]
+  ys = [ y0 + m*(xmin - x0), y0, y0 + m*(xmax - x0) ]
 
   # Remove non Makie keyword arguments to avoid errors
   delete!(plt.attributes.attributes, :iterations)
 
   # Plot tangent
-  lines!(plt, Observable([xmin, xmax]), Observable(ys);
+  scatterlines!(plt, Observable([xmin, x0, xmax]), Observable(ys);
       plt.attributes.attributes...)
 
   plt
@@ -120,7 +120,7 @@ end
 #
 
 """
-    plotorbitga(f, x0 [; iterations, hidediterations, coloring])
+    orbitga(f, x0 [; iterations, hidediterations, coloring])
 
 Plot the **G**raphical **A**nalysis of the orbit of \$x_0\$ (or \$[x_0,x_1]\$) under a function
 \$f:\\mathbb{R}\\rightarrow\\mathbb{R}\$.
@@ -137,7 +137,7 @@ Plot the **G**raphical **A**nalysis of the orbit of \$x_0\$ (or \$[x_0,x_1]\$) u
   - `:time`: Different colors for each time.
   - `:unique`: Unique color.
 """
-@recipe(PlotOrbitGA) do scene
+@recipe(OrbitGA) do scene
   Attributes(
     iterations = 20,
     hidediterations = 0,
@@ -146,8 +146,7 @@ Plot the **G**raphical **A**nalysis of the orbit of \$x_0\$ (or \$[x_0,x_1]\$) u
   )
 end
 
-function Makie.plot!(
-  plt::PlotOrbitGA{ <:Tuple{ Function, Any } })
+function Makie.plot!(plt::OrbitGA{ <:Tuple{ Function, Any } })
 
   # Recipe attributes
   obs_f = plt[1]
@@ -206,13 +205,10 @@ function Makie.plot!(
     funcolor = k::Int -> plt.color[] # Unique
   end
   if clrn == :orbit
-    cm = plt.colormap[] isa Symbol ? colorschemes[plt.colormap[]] : ColorScheme(plt.colormap[])
     if nvals > 1
+      cm = plt.colormap[] isa Symbol ? colorschemes[plt.colormap[]] : ColorScheme(plt.colormap[])
       cmarr = [ cm[k/(nvals-1)] for k in 0:(nvals-1) ]
       funcolor = k::Int -> cmarr[k]
-    else
-      c0 = cm[0.0]
-      funcolor = k::Int -> c0
     end
   elseif clrn == :time
     funcolor = k::Int -> 1:(2nits+1)
@@ -238,7 +234,7 @@ end
 #
 
 """
-    plotorbitarcpath(f, x0 [; iterations, hidediterations, coloring])
+    orbitarcpath(f, x0 [; iterations, hidediterations, coloring])
 
 Plot the graph of the \$n\$-th iterative of a function
 \$f:\\mathbb{R}\\rightarrow\\mathbb{R}\$.
@@ -255,7 +251,7 @@ Plot the graph of the \$n\$-th iterative of a function
   - `:time`: Different colors for each time.
   - `:unique`: Unique color.
 """
-@recipe(PlotOrbitArcPath) do scene
+@recipe(OrbitArcPath) do scene
   Attributes(
     iterations = 20,
     hidediterations = 0,
@@ -264,8 +260,7 @@ Plot the graph of the \$n\$-th iterative of a function
   )
 end
 
-function Makie.plot!(
-  plt::PlotOrbitArcPath{<:Tuple{ Function, Any } } )
+function Makie.plot!(plt::OrbitArcPath{<:Tuple{ Function, Any } } )
 
   # Recipe attributes
   obs_f = plt[1]
@@ -337,219 +332,6 @@ function Makie.plot!(
   end
 
   plt
-end
-
-
-#
-# Plot Time Series
-#
-
-"""
-    plottimeseries(f, x0 [; iterations, hidediterations, coloring])
-
-Plot the time series of the orbit of \$x_0\$ (or \$[x_0,x_1]\$) under a function
-\$f:\\mathbb{R}\\rightarrow\\mathbb{R}\$.
-
-#### Arguments
-- `f::Function`: Function \$f:\\mathbb{R}\\rightarrow\\mathbb{R}\$.
-- `x0::Union{Real, AbstractVector{Real}}`: Initial value(s).
-
-#### Keyword Arguments
-- `iterations::Int=20`: Number of iterations in the orbit to be drawn.
-- `hidediterations::Int=0`: Number of iterations in the orbit not drawn.
-- `coloring::Symbol=:time`:
-  - `:orbit`: Different colors for each orbit.
-  - `:time`: Different colors for each time.
-  - `:unique`: Unique color.
-- `plotstyle::Symbol=:scatterlines`: Plot style, `:scatterlines` or `:stem`.
-"""
-@recipe(PlotTimeSeries) do scene
-  Attributes(
-    iterations = 20,
-    hidediterations = 0,
-    coloring = :time,
-    colormap = :viridis,
-    plotstyle = :scatterlines
-  )
-end
-
-function Makie.plot!(
-  plt::PlotTimeSeries{ <:Tuple{ Function, Any} })
-
-  # Recipe attributes
-  obs_f = plt[1]
-  f = obs_f[] # Function
-  @assert typeof(f(1.)) <: Real # Function verification
-  obs_x0 = plt[2]
-  x0 = obs_x0[]
-  x0s = Float64[]
-  if x0 isa Real
-    push!(x0s, x0)
-  else
-    x0s = collect(obs_x0[])
-  end
-  nvals = length(x0s) # Number of inital values
-
-  # Plot keyword arguments
-  nits = plt.iterations[]
-  nhits = plt.hidediterations[]
-  clrn = plt.coloring[]
-  pltsty = plt.plotstyle[]
-
-  # Hided iterations, not to to be drawn
-  if nhits > 0 
-    for k in 1:nvals
-      for n in 1:nhits
-        x0s[k] = f(x0s[k])
-      end
-    end
-  end
-
-  # Initial observable arrays for interaction
-  obs_xns = [ Observable( Float64[] ) for k in 1:nvals ]
-  for k in 1:nvals
-    push!(obs_xns[k][], x0s[k] )
-  end
-
-  # Iterations, to be drawn
-  for k in 1:nvals
-    kxs = obs_xns[k][]
-    for n in 1:nits
-      push!(kxs, f(kxs[end]) )
-    end
-  end
-
-  # Coloring
-  funcolor = k::Int -> RGBA(0,0,0) # Default
-  if haskey(plt, :color)
-    funcolor = k::Int -> plt.color[] # Unique
-  end
-  if clrn == :orbit
-    cm = plt.colormap[] isa Symbol ? colorschemes[plt.colormap[]] : ColorScheme(plt.colormap[])
-    if nvals > 1
-      cmarr = [ cm[k/(nvals-1)] for k in 0:(nvals-1) ]
-      funcolor = k::Int -> cmarr[k]
-    else
-      c0 = cm[0.0]
-      funcolor = k::Int -> c0
-    end
-  elseif clrn == :time
-    funcolor = k::Int -> 0:nits
-  end
-
-  # Remove non Makie keyword arguments to avoid errors
-  delete!(plt.attributes.attributes, :iterations)
-  delete!(plt.attributes.attributes, :hidediterations)
-  delete!(plt.attributes.attributes, :coloring)
-  delete!(plt.attributes.attributes, :plotstyle)
-
-  # Drawing the iterations
-  if pltsty == :stem
-    obs_tns = [ Observable( (nhits):(nhits+nits) ) ]
-    if nvals > 1
-      obs_tns = [ Observable( (nhits+k/nvals):(nhits+nits+k/nvals) ) for k in 0:nvals ]
-    end
-
-    for k in 1:nvals    
-      stem!(plt, obs_tns[k], obs_xns[k];
-        plt.attributes.attributes..., color = funcolor(k))
-    end    
-  else
-    obs_tns = Observable( nhits:(nhits+nits) )
-
-    for k in 1:nvals
-      scatterlines!(plt, obs_tns, obs_xns[k];
-        plt.attributes.attributes..., color = funcolor(k))
-    end  
-  end
-
-  plt 
-end
-
-
-#
-# Plot Time Series Diff(erences)
-#
-
-"""
-    plottimeseriesdiff(f, x0, x1 [; iterations, hidediterations, coloring])
-
-Plot the time series of the difference of two orbits (of \$x_0\$ and \$x_0\$) under a function
-\$f:\\mathbb{R}\\rightarrow\\mathbb{R}\$.
-
-#### Arguments
-- `f::Function`: Function \$f:\\mathbb{R}\\rightarrow\\mathbb{R}\$.
-- `x0::Real`: Initial value.
-- `x1::Real`: Initial value.
-
-#### Keyword Arguments
-- `iterations::Int=20`: Number of iterations in the orbit to be drawn.
-- `hidediterations::Int=0`: Number of iterations in the orbit not drawn.
-- `plotstyle::Symbol=:scatterlines`: Plot style, `:scatterlines` or `:stem`.
-"""
-@recipe(PlotTimeSeriesDiff) do scene
-  Attributes(
-    iterations = 20,
-    hidediterations = 0,
-    plotstyle = :scatterline
-  )
-end
-
-function Makie.plot!(
-  plt::PlotTimeSeriesDiff{ <:Tuple{ Function, Real, Real } })
-
-  # Recipe attributes
-  obs_f = plt[1]
-  f = obs_f[] # Function
-  @assert typeof(f(1.)) <: Real # Function verification
-  obs_x0 = plt[2]
-  x0 = obs_x0[]
-  obs_x1 = plt[3]
-  x1 = obs_x1[]
-
-  # Plot keyword arguments
-  nits = plt.iterations[]
-  nhits = plt.hidediterations[]
-  pltsty = plt.plotstyle[]
-
-  # Hided iterations, not to to be drawn
-  if nhits > 0 
-    for n in 1:nhits
-      x0 = f(x0)
-      x1 = f(x1)
-    end
-  end
-
-  # Initial observable arrays for interaction
-  obs_xns = Observable( Float64[] )
-  obs_tns = Observable( nhits:(nhits+nits) )
-
-  # Iterations, to be drawn
-  for n in 0:nits
-    push!(obs_xns[], x0 - x1 )
-    x0 = f(x0)
-    x1 = f(x1)
-  end
-
-  # Coloring
-  clr = 0:nits
-  if haskey(plt, :color)
-    clr = plt.color[]
-  end
-
-  # Remove non Makie keyword arguments to avoid errors
-  delete!(plt.attributes.attributes, :iterations)
-  delete!(plt.attributes.attributes, :hidediterations)
-  delete!(plt.attributes.attributes, :plotstyle)
-
-  # Drawing the iterations
-  if pltsty == :stem
-    stem!(plt, obs_tns, obs_xns; plt.attributes.attributes..., color = clr)
-  else
-    scatterlines!(plt, obs_tns, obs_xns; plt.attributes.attributes..., color = clr)
-  end
-
-  plt 
 end
 
 

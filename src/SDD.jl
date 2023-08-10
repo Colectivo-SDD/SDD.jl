@@ -5,93 +5,133 @@ or Discrete Dynamical Systems.
 """
 module SDD
 
-using Base: iterate_continued
+#using Base: iterate_continued
 using Reexport
 
-@reexport using SDDCore, SDDGeometry, StaticArrays, IntervalSets,
+@reexport using StaticArrays, IntervalSets,
   Colors, ColorSchemes
-using Images, Makie, InteractiveViz
+using SDDCore, SDDGeometry, SDDGraphics, Images, Makie, InteractiveViz
 #@reexport import
-# SDDGraphics # Deprecated!!!
+
 
 include("plotrealgraphs.jl")
 
 export
-    plotgraph,
-    plotgraph!,
-    iplotgraph,
-    iplotgraph!,
-    plottangent,
-    plottangent!,
-    plotorbitga,
-    plotorbitga!,
-    plotorbitarcpath,
-    plotorbitarcpath!,
-    plottimeseries,
-    plottimeseries!,
-    plottimeseriesdiff,
-    plottimeseriesdiff!
+    funcgraph,
+    funcgraph!,
+    ifuncgraph,
+    ifuncgraph!,
+    functangent,
+    functangent!,
+    orbitga,
+    orbitga!,
+    orbitarcpath,
+    orbitarcpath!
+
+
+include("timeseries.jl")
+
+export
+    functimeseries,
+    functimeseries!,
+    functimeseriesdiff,
+    functimeseriesdiff!
+    functimeseries3d,
+    functimeseries3d!,
+    functimeseriesdiff3d,
+    functimeseriesdiff3d!
 
 
 include("bifurcations.jl")
 
 export
-    imgaobifdiagram,
-    imgaobifdiagram!,
-    plotimgaobifdiagram,
-    plotimgaobifdiagram!,
-    plotaobifdiagram,
-    plotaobifdiagram!,
-    iplotaobifdiagram,
-    iplotaobifdiagram!,
-    plotscatteraobifdiagram,
-    plotscatteraobifdiagram!,
-    iplotscatteraobifdiagram,
-    iplotscatteraobifdiagram!
-    #plotbifdiagram,
-    #plotbifdiagram!
+    imgattrbifdiagram,
+    attrbifdiagram,
+    attrbifdiagram!,
+    #iattrbifdiagram, 
+    #iattrbifdiagram!,
+    scatterattrbifdiagram,
+    scatterattrbifdiagram!,
+    iscatterattrbifdiagram,
+    iscatterattrbifdiagram!
+    #bifdiagram,
+    #bifdiagram!
 
 
-#include("orbits2d.jl")
-#export
-    #plotorbit,
-    #plotorbit!
+include("orbits.jl")
+
+export
+    orbitpath,
+    orbitpath!
+    #orbitarcpath, #?
+    #orbitarcpath! #?
+    #orbitpath3d,
+    #orbitpath3d!
 
 
-#include("trappedpoints.jl")
+include("trappedpoints.jl")
+
+export
+    imgtrappedpoints,
+    trappedpoints,
+    trappedpoints!,
+    itrappedpoints,
+    itrappedpoints!
+    #trappedpoints3d,
+    #trappedpoints3d!,
+
+
 #include("mandelbrots.jl")
+
+#export
+    #mandelbrot,
+    #mandelbrot!,
+    #imandelbrot,
+    #imandelbrot!,
+    #mandelbrot3d,
+    #mandelbrot3d!,
+
+
 #include("preimages.jl")
+
+#export
+    #preimages,
+    #preimages!,
+    #ipreimages,
+    #ipreimages!,
+
+
 #include("basins.jl")
+
+#export
+    #basins,
+    #basins!,
+    #ibasins,
+    #ibasins!,
+
+
 #include("SUmanifolds.jl")
 
 
-#include("basic3d.jl")    
-#export
-    #plotmodulusgraph,
-    #plotmodulusgraph!
-    #plotargumentgraph,
-    #plotargumentgraph!
-    #plottimeseries3d,
-    #plottimeseries3d!,
-    #plottimeseriesdiff3d,
-    #plottimeseriesdiff3d!,
+include("plotgraphs3d.jl")
 
-
-#include("orbits3d.jl")
-#export
-    #plotorbit3d,
-    #plotorbit3d!
+export
+    funcgraph2d,
+    funcgraph2d!,
+    modulusgraph,
+    modulusgraph!
+    arggraph,
+    arggraph!
 
 
 #include("bifurcations3d.jl")
 #export
-#    plotorbitsdiagram3d,
-#    plotorbitsdiagram3d!,
-#    plotbifurcationdiagram3d,
-#    plotbifurcationdiagram3d!,
-#    plotmodulusdiagram3d,
-#    plotmodulusdiagram3d!,
-
+#    attrbifdiagram3d,
+#    attrbifdiagram3d!,
+#    bifdiagram3d,
+#    bifdiagram3d!,
+#    modulusdiagram3d,
+#    modulusdiagram3d!,
 
 
 #=    plot,

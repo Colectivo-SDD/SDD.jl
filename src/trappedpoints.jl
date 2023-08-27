@@ -2,38 +2,7 @@
 """
 Create a function to return the scape time of iterations of a point.
 """
-function createescapetime(f::Function; hasescaped::Function=p->abs2(p)>4, maxiterations::Int=100,
-    normalize::Union{Nothing, Function}=nothing)
-  if isnothing(normalize)
-    return function escapetime(p)
-      for n in 0:maxiterations
-        if hasescaped(p)
-          return n
-        end
-        p = f(p)
-      end
-      maxiterations
-    end
-  else
-    return function escapetimenorm(p)
-      for n in 0:maxiterations
-        if hasescaped(p)
-          return normalize(n, p)
-        end
-        p = f(p)
-      end
-      #normalize(maxiterations, p)
-      maxiterations
-    end
-  end
-  p -> maxiterations
-end
-
-
-"""
-Create a function to return the scape time of iterations of a point.
-"""
-function createescapetimexy(f::Function; topoint::Function,
+function createescapetime(f::Function; topoint::Function,
     hasescaped::Function=p->abs2(p)>4, maxiterations::Int=100,
     normalize::Union{Nothing, Function}=nothing)
   if isnothing(normalize)
@@ -71,21 +40,24 @@ function matrixtrappedpoints(f::Function, xs::AbstractVector{<:Real}, ys::Abstra
   hasescaped::Function=z->abs2(z)>4, maxiterations::Int=100, normalize::Union{Nothing, Function}=nothing, 
   value::Function=k::Real->k, rot90::Bool=false)
 
-  topoint = createtopoint2D(functionkind2D(f))
-  esctime = createescapetime(f, hasescaped=hasescaped, maxiterations=maxiterations, normalize=normalize)
+  esctime = createescapetime(f, topoint=createtopoint2D(functionkind2D(f)),
+    hasescaped=hasescaped, maxiterations=maxiterations, normalize=normalize)
 
-  w, h = length(xs), length(ys)
-  rr = RectRegion(xs, ys)
+  W, H = length(xs), length(ys)
+  mtrx = rot90 ? fill(value(0.0), H, W) : fill(value(0.0), W, H)
 
-  val0 = value(0.0)
-  mtrx = rot90 ? fill(val0, h, w) : fill(val0, w, h)
-  mtrxindx = rot90 ? (w,h)->(h,w) : (w,h)->(w,h)
-  _ys = rot90 ? Base.reverse(ys) : ys
-
-  for h in 1:length(_ys)
-    for w in 1:length(xs)
-      p = topoint(xs[w],_ys[h])
-      mtrx[mtrxindx(w,h)...] = value(esctime(p))
+  if rot90
+    _ys = Base.reverse(ys)
+    for h in 1:H
+      for w in 1:W
+        mtrx[h,w] = value(esctime(xs[w],_ys[h]))
+      end
+    end
+  else
+    for h in 1:H
+      for w in 1:W
+        mtrx[w,h] = value(esctime(xs[w],ys[h]))
+      end
     end
   end
 
@@ -129,7 +101,7 @@ end
 """
     trappedpoints(f, xs, ys, [; hasescaped, maxiterations, normalize, plotstyle])
 
-Return a image with the drawing of the trapped points set of a function
+Return a **Makie** plot with the drawing of the trapped points set of a function
     \$f:\\mathbb{C}\\rightarrow\\mathbb{C}\$ or \$f:\\mathbb{R}^2\\rightarrow\\mathbb{R}^2\$,
     in a rectangular region \$[x_{min},x_{max}]\\times[y_{min},y_{max}]\$,
     using the escape time of iterations algorithm.
@@ -181,7 +153,6 @@ function Makie.plot!(plt::TrappedPoints{<:Tuple{Function, <:AbstractVector{<:Rea
   if pltsty == :image
     pltcm = haskey(plt.attributes.attributes, :colormap) ? plt.colormap[] : :viridis
     cm = typeof(pltcm) == Symbol ? colorschemes[pltcm] : ColorScheme(pltcm)
-    #cm = [ cm[k/maxiterations] for k in 0.0:maxiterations ]
 
     image!(plt, obs_xs, obs_ys,
       matrixtrappedpoints(f, xs, ys, hasescaped=he, maxiterations=maxits, normalize=nrm,
@@ -189,10 +160,9 @@ function Makie.plot!(plt::TrappedPoints{<:Tuple{Function, <:AbstractVector{<:Rea
       plt.attributes.attributes...)
   else
     heatmap!(plt, obs_xs, obs_ys,
-      createescapetimexy(f, topoint=createtopoint2D(functionkind2D(f)),
+      createescapetime(f, topoint=createtopoint2D(functionkind2D(f)),
         hasescaped=he, maxiterations=maxits, normalize=nrm);
       plt.attributes.attributes...)
-    #matrixtrappedpoints(f, xs, ys; hasescaped=he, maxiterations=maxits)
   end
 
   plt
@@ -206,13 +176,13 @@ Same as `trappedpoints`, but using **InteractiveViz**.
 """
 itrappedpoints(f::Function, xs, ys; maxiterations::Int=100,
   hasescaped::Function=p->abs2(p)>4, normalize::Union{Nothing, Function}=nothing, kwargs...) =
-  iheatmap( createescapetimexy( f, topoint=createtopoint2D(functionkind2D(f)),
+  iheatmap( createescapetime( f, topoint=createtopoint2D(functionkind2D(f)),
       hasescaped=hasescaped, maxiterations=maxiterations, normalize=normalize ),
     xs[1], xs[end], ys[1], ys[end];
     kwargs...)
 itrappedpoints(g, f::Function, xs, ys; maxiterations::Int=100,
   hasescaped::Function=p->abs2(p)>4, normalize::Union{Nothing, Function}=nothing, kwargs...) =
-  iheatmap(g, createescapetimexy( f, topoint=createtopoint2D(functionkind2D(f)),
+  iheatmap(g, createescapetime( f, topoint=createtopoint2D(functionkind2D(f)),
       hasescaped=hasescaped, maxiterations=maxiterations, normalize=normalize ),
     xs[1], xs[end], ys[1], ys[end];
     kwargs...)

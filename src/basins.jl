@@ -1,4 +1,192 @@
 
+
+"""
+Create a function to return the nth-preimage asociated value for the color map.
+"""
+function createbasinsval(f::Function, points::Vector; topoint::Function,
+    hasescaped::Function=p->false, maxiterations::Int=100, tolerance::Real=1.0e-12)
+  return function preimageval(x::Real, y::Real)
+    p = topoint(x,y)
+    for n in 0:maxiterations
+      if hasescaped(p)
+        return 0.0
+      end
+      for k in 1:length(points)
+        if abs2(p-points[k]) < tolerance
+          return (k/length(points))*(1.0-n/maxiterations)
+        end
+      end
+      p = f(p)
+    end
+    0.0
+  end
+end
+
+
+"""
+Return a matrix of basins values.
+"""
+function matrixbasins(f::Function, points::Vector, xs::AbstractVector{<:Real}, ys::AbstractVector{<:Real};
+  hasescaped::Function=p->false, maxiterations::Int=100, tolerance::Real=1.0e-12,
+  value::Function=k::Real->k, rot90::Bool=false)
+
+  basval = createbasinsval(f, points, topoint=createtopoint2D(functionkind2D(f)),
+    hasescaped=hasescaped, maxiterations=maxiterations, tolerance=tolerance)
+
+  W, H = length(xs), length(ys)
+  mtrx = rot90 ? fill(value(0.0), H, W) : fill(value(0.0), W, H)
+
+  if rot90
+    _ys = Base.reverse(ys)
+    for h in 1:H
+      for w in 1:W
+        mtrx[h,w] = value(basval(xs[w],_ys[h]))
+      end
+    end
+  else
+    for h in 1:H
+      for w in 1:W
+        mtrx[w,h] = value(basval(xs[w],ys[h]))
+      end
+    end
+  end
+
+  mtrx
+end
+
+
+"""
+    imgbasins(f, xs, ys, points [; maxiterations, hasescaped, tolerance, colormap])
+
+Return an image with the drawing of the basins of attraction of givn points of a function
+    \$f:\\mathbb{C}\\rightarrow\\mathbb{C}\$ or \$f:\\mathbb{R}^2\\rightarrow\\mathbb{R}^2\$,
+    in a rectangular region \$[x_{min},x_{max}]\\times[y_{min},y_{max}]\$.
+
+A basin of attraction of a fixed point \$p_0\$ is
+
+\$\\{p\\,|\\,\\lim_{n\\rigtharrow\\infty}f^n(p)=p_0\\}\$
+
+#### Arguments
+- `f::Function`: A function \$f:\\mathbb{C}\\rightarrow\\mathbb{C}\$ or \$f:\\mathbb{R}^2\\rightarrow\\mathbb{R}^2\$.
+- `xs::AbstractVector{<:Real}`: Base \$x\$ coordinates for the rectangular region.
+- `ys::AbstractVector{<:Real}`: Base \$y\$ coordinates for the rectangular region.
+- `points::AbstractVector=[]`: List of attracting points to drawn its basins.
+#### Keyword arguments
+- `maxiterations::Integer`: Maximum number of iterations to calculate \$f^n(p)\$.
+- `hasescaped::Function`: A boolean function to check if the iterations has escaped.
+- `tolerance::Real`: A small real number to determine the closeness of \$f^n(p)\$ to an attractor.
+- `colormap`: Color map for the coloring function.
+"""
+function imgbasins(f::Function, points::Vector, xs::AbstractVector{<:Real}, ys::AbstractVector{<:Real};
+  hasescaped::Function = p->false, maxiterations::Int = 100, tolerance::Real=10.e-12,
+  colormap::Union{Symbol, Vector{<:Colorant}} = :viridis)
+
+  cm = typeof(colormap) == Symbol ? colorschemes[colormap] : ColorScheme(colormap)
+  #cm = [ cs[k/maxiterations] for k in 0.0:maxiterations ]
+
+  matrixbasins(f, points, xs, ys; hasescaped=hasescaped, maxiterations=maxiterations,
+    tolerance=tolerance, value=k::Real->cm[k], rot90=true)
+end
+
+
+"""
+    basins(f, xs, ys, points, [; maxiterations, hasescaped, tolerance, plotstyle])
+
+Return a **Makie** plot with the drawing of the basins of attraction of given points of a function
+    \$f:\\mathbb{C}\\rightarrow\\mathbb{C}\$ or \$f:\\mathbb{R}^2\\rightarrow\\mathbb{R}^2\$,
+    in a rectangular region \$[x_{min},x_{max}]\\times[y_{min},y_{max}]\$.
+
+A basin of attraction of a fixed point \$p_0\$ is
+
+\$\\{p\\,|\\,\\lim_{n\\rigtharrow\\infty}f^n(p)=p_0\\}\$
+
+#### Arguments
+- `f::Function`: A function \$f:\\mathbb{C}\\rightarrow\\mathbb{C}\$ or \$f:\\mathbb{R}^2\\rightarrow\\mathbb{R}^2\$.
+- `xs::AbstractVector{<:Real}`: Base \$x\$ coordinates for the rectangular region.
+- `ys::AbstractVector{<:Real}`: Base \$y\$ coordinates for the rectangular region.
+- `points::AbstractVector=[]`: List of attracting points to drawn its basins.
+#### Keyword arguments
+- `maxiterations::Integer`: Maximum number of iterations to calculate \$f^n(p)\$.
+- `hasescaped::Function`: A boolean function to check if the iterations has escaped.
+- `tolerance::Real`: A small real number to determine the closeness of \$f^n(p)\$ to an attractor.
+- `plotstyle::Symbol`: Plot style `:heatmap` or `:image`.
+"""
+@recipe(Basins) do scene
+  Attributes(
+    maxiterations = 100,
+    hasescaped = p -> false,
+    tolerance = 1.0e-12,
+    plotstyle = :heatmap
+  )
+end
+
+function Makie.plot!(plt::Basins{<:Tuple{Function, Vector, <:AbstractVector{<:Real}, <:AbstractVector{<:Real}}})
+  # Recipe attributes
+  obs_f = plt[1]
+  f = obs_f[] # Function
+  obs_pts = plt[2]
+  pts = obs_pts[] # List of points
+  obs_xs = plt[3]
+  xs = obs_xs[]
+  obs_ys = plt[4]
+  ys = obs_ys[]
+
+  if isempty(pts)
+    #calculate attractive and parabolic fixed points...
+  end
+
+  # Plot keyword arguments
+  maxits = plt.maxiterations[]
+  he = plt.hasescaped[]  
+  tol = plt.tolerance[]
+  pltsty = plt.plotstyle[]  
+
+  # Remove non Makie keyword arguments to avoid errors
+  delete!(plt.attributes.attributes, :iterations)
+  delete!(plt.attributes.attributes, :hasescaped)
+  delete!(plt.attributes.attributes, :tolerance)
+  delete!(plt.attributes.attributes, :plotstyle)
+
+  # Makie's Plot
+  if pltsty == :image
+    pltcm = haskey(plt.attributes.attributes, :colormap) ? plt.colormap[] : :viridis
+    cm = typeof(pltcm) == Symbol ? colorschemes[pltcm] : ColorScheme(pltcm)
+
+    image!(plt, obs_xs, obs_ys,
+      matrixbasins(f, pts, xs, ys, hasescaped=he, maxiterations=maxits,
+        tolerance=tol, value=k::Real->cm[k] );
+      plt.attributes.attributes...)
+  else
+    heatmap!(plt, obs_xs, obs_ys,
+      createbasinsval(f, pts, topoint=createtopoint2D(functionkind2D(f)),
+        hasescaped=he, maxiterations=maxits, tolerance=tol);
+      plt.attributes.attributes...)
+  end
+
+  plt
+end
+
+
+"""
+    ibasins([g,] f, xs, ys, points, [; maxiterations, hasescaped, tolerance])
+
+Same as `basins`, but using **InteractiveViz**.
+"""
+ibasins(f::Function, points, xs, ys; maxiterations::Int=100, hasescaped::Function=p->false,
+  tolerance=1.0e-12, kwargs...) =
+  iheatmap( createbasinsval( f, points, topoint=createtopoint2D(functionkind2D(f)),
+      hasescaped=hasescaped, maxiterations=maxiterations, tolerance=tolerance),
+    xs[1], xs[end], ys[1], ys[end];
+    kwargs...)
+ibasins(g, f::Function, points, xs, ys; maxiterations::Int=100, hasescaped::Function=p->false,
+  tolerance=1.0e-12, kwargs...) =
+  iheatmap(g, createbasinsval( f, points, topoint=createtopoint2D(functionkind2D(f)),
+      hasescaped=hasescaped, maxiterations=maxiterations, tolerance=tolerance),
+    xs[1], xs[end], ys[1], ys[end];
+    kwargs...)
+
+
+#=
 """
     drawbasinsR2(f, points [; hasescaped, maxiterations, tolerance])
 
@@ -366,3 +554,5 @@ function drawbasinsC_BAP(f::Function;
     end
     SDDGraphics.drawing()
 end # function drawtrappedpointsR2
+
+=#

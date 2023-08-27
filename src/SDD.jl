@@ -81,33 +81,44 @@ export
     #trappedpoints3d!,
 
 
-#include("mandelbrots.jl")
+include("mandelbrots.jl")
 
-#export
-    #mandelbrot,
-    #mandelbrot!,
-    #imandelbrot,
-    #imandelbrot!,
+export
+    imgmandelbrot,
+    mandelbrot,
+    mandelbrot!,
+    imandelbrot,
+    imandelbrot!,
+    imgmandelbrotmultiseed,
+    mandelbrotmultiseed,
+    mandelbrotmultiseed!,
+    imandelbrotmultiseed,
+    imandelbrotmultiseed!
     #mandelbrot3d,
     #mandelbrot3d!,
+    #mandelbrotmultiseed3d,
+    #mandelbrotmultiseed3d!,
 
 
-#include("preimages.jl")
+include("preimages.jl")
 
-#export
-    #preimages,
-    #preimages!,
-    #ipreimages,
-    #ipreimages!,
+export
+    imgsimplepreimages,
+    simplepreimages,
+    simplepreimages!,
+    isimplepreimages,
+    imgpreimages,
+    preimages,
+    preimages!
 
 
-#include("basins.jl")
+include("basins.jl")
 
-#export
-    #basins,
-    #basins!,
-    #ibasins,
-    #ibasins!,
+export
+    imgbasins,
+    basins,
+    basins!,
+    ibasins
 
 
 #include("SUmanifolds.jl")

@@ -12,7 +12,7 @@ function createpreimageval(f::Function; topoint::Function,
   return function preimageval(x::Real, y::Real)
     p = topoint(x,y)
     if iterations == 0
-      if hasescaped(p)
+      if hasescaped(p) || isnan(p) || isinf(p)
         return outsidecolor
       else
         return coloringfunction(p)
@@ -20,7 +20,7 @@ function createpreimageval(f::Function; topoint::Function,
     end
     for n in 1:iterations
       p = f(p)
-      if hasescaped(p)
+      if hasescaped(p) || isnan(p) || isinf(p)
         return outsidecolor
       end
     end
@@ -43,6 +43,10 @@ function matrixsimplepreimages(f::Function, xs::AbstractVector{<:Real}, ys::Abst
 
   W, H = length(xs), length(ys)
   mtrx = rot90 ? fill(value(0.0), H, W) : fill(value(0.0), W, H)
+
+  if iterations < 0
+    return mtrx
+  end
 
   if rot90
     _ys = Base.reverse(ys)
@@ -69,7 +73,7 @@ end
 Return an image with the drawing of the nth-preimage of a function
     \$f:\\mathbb{C}\\rightarrow\\mathbb{C}\$ or \$f:\\mathbb{R}^2\\rightarrow\\mathbb{R}^2\$,
     in a rectangular region \$[x_{min},x_{max}]\\times[y_{min},y_{max}]\$,
-    with a given a coloring function over the plane.
+    with a given a simple coloring function over the plane to \$[0,1]\$ and a given color map.
 
 #### Arguments
 - `f::Function`: A function \$f:\\mathbb{C}\\rightarrow\\mathbb{C}\$ or \$f:\\mathbb{R}^2\\rightarrow\\mathbb{R}^2\$.
@@ -88,7 +92,6 @@ function imgsimplepreimages(f::Function, xs::AbstractVector{<:Real}, ys::Abstrac
   colormap::Union{Symbol, Vector{<:Colorant}} = :viridis)
 
   cm = typeof(colormap) == Symbol ? colorschemes[colormap] : ColorScheme(colormap)
-  #cm = [ cs[k/maxiterations] for k in 0.0:maxiterations ]
 
   matrixsimplepreimages(f, xs, ys; hasescaped=hasescaped, iterations=iterations,
     coloringfunction=coloringfunction, outsidecolor=outsidecolor,
@@ -102,7 +105,7 @@ end
 Return a **Makie** plot with the drawing of the preimages of a function
     \$f:\\mathbb{C}\\rightarrow\\mathbb{C}\$ or \$f:\\mathbb{R}^2\\rightarrow\\mathbb{R}^2\$,
     in a rectangular region \$[x_{min},x_{max}]\\times[y_{min},y_{max}]\$
-    with a given a coloring function over the plane.
+    with a given a simple coloring function over the plane to \$[0,1]\$ and a given color map.
 
 #### Arguments
 - `f::Function`: A function \$f:\\mathbb{C}\\rightarrow\\mathbb{C}\$ or \$f:\\mathbb{R}^2\\rightarrow\\mathbb{R}^2\$.
@@ -153,7 +156,7 @@ function Makie.plot!(plt::SimplePreImages{<:Tuple{Function, <:AbstractVector{<:R
     pltcm = haskey(plt.attributes.attributes, :colormap) ? plt.colormap[] : :viridis
     cm = typeof(pltcm) == Symbol ? colorschemes[pltcm] : ColorScheme(pltcm)
 
-    image!(plt, obs_xs, obs_ys,
+    image!(plt, obs_xs[][1]..obs_xs[][end], obs_ys[][1]..obs_ys[][end],
       matrixsimplepreimages(f, xs, ys, hasescaped=he, iterations=its,
         coloringfunction=cf, outsidecolor=outclr, value=k::Real->cm[k] );
       plt.attributes.attributes...)
@@ -208,6 +211,10 @@ function matrixpreimages(f::Function, xs::AbstractVector{<:Real}, ys::AbstractVe
   W, H = length(xs), length(ys)
   mtrx = rot90 ? fill(outsidecolor, H, W) : fill(outsidecolor, W, H)
 
+  if iterations < 0
+    return mtrx
+  end
+
   if rot90
     _ys = Base.reverse(ys)
     for h in 1:H
@@ -241,7 +248,7 @@ end
 Return an image with the drawing of the nth-preimage of a function
     \$f:\\mathbb{C}\\rightarrow\\mathbb{C}\$ or \$f:\\mathbb{R}^2\\rightarrow\\mathbb{R}^2\$,
     in a rectangular region \$[x_{min},x_{max}]\\times[y_{min},y_{max}]\$,
-    with a given a coloring function over the plane.
+    with a given a coloring function over the plane to the color space.
 
 #### Arguments
 - `f::Function`: A function \$f:\\mathbb{C}\\rightarrow\\mathbb{C}\$ or \$f:\\mathbb{R}^2\\rightarrow\\mathbb{R}^2\$.
@@ -270,7 +277,7 @@ end
 Return a **Makie** plot with the drawing of the preimages of a function
     \$f:\\mathbb{C}\\rightarrow\\mathbb{C}\$ or \$f:\\mathbb{R}^2\\rightarrow\\mathbb{R}^2\$,
     in a rectangular region \$[x_{min},x_{max}]\\times[y_{min},y_{max}]\$
-    with a given a coloring function over the plane.
+    with a given a coloring function over the plane to the color space.
 
 #### Arguments
 - `f::Function`: A function \$f:\\mathbb{C}\\rightarrow\\mathbb{C}\$ or \$f:\\mathbb{R}^2\\rightarrow\\mathbb{R}^2\$.
@@ -316,7 +323,7 @@ function Makie.plot!(plt::PreImages{<:Tuple{Function, <:AbstractVector{<:Real}, 
   pltcm = haskey(plt.attributes.attributes, :colormap) ? plt.colormap[] : :viridis
   cm = typeof(pltcm) == Symbol ? colorschemes[pltcm] : ColorScheme(pltcm)
 
-  image!(plt, obs_xs, obs_ys,
+  image!(plt, obs_xs[][1]..obs_xs[][end], obs_ys[][1]..obs_ys[][end],
     matrixpreimages(f, xs, ys, hasescaped=he, iterations=its,
       coloringfunction=cf, outsidecolor=outclr );
     plt.attributes.attributes...)

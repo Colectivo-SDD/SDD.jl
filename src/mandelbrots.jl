@@ -8,7 +8,7 @@ Create a function to return the scape time of iterations of a point.
 """
 function createseedescapetime(f::Function; topoint::Function,
     seed::Union{Number, AbstractVector{<:Real}, Function},
-    hasescaped::Function=p->abs2(p)>4, maxiterations::Int=100,
+    hasescaped::Function=(t,p)->abs2(p)>4, maxiterations::Int=100,
     normalize::Union{Nothing, Function}=nothing)
   if isnothing(normalize)
     if seed isa Function
@@ -16,24 +16,24 @@ function createseedescapetime(f::Function; topoint::Function,
         t = topoint(x,y) # Family parameter
         p = seed(t) # Seed
         for n in 0:maxiterations
-          if hasescaped(p)
+          if hasescaped(t, p)
             return n
           end # if hasescaped
           p = f(t, p)
         end # for
-        maxiterations
+        maxiterations+1
       end # function
     else
       return function seedescapetime(x::Real, y::Real)
         t = topoint(x,y) # Family parameter
         p = seed # Seed
         for n in 0:maxiterations
-          if hasescaped(p)
+          if hasescaped(t, p)
             return n
           end # if hasescaped
           p = f(t, p)
         end # for
-        maxiterations
+        maxiterations+1
       end # function
     end # if function
   else
@@ -42,24 +42,24 @@ function createseedescapetime(f::Function; topoint::Function,
         t = topoint(x,y) # Family parameter
         p = seed(t) # Seed
         for n in 0:maxiterations
-          if hasescaped(p)
+          if hasescaped(t, p)
             return normalize(n,p)
           end # if hasescaped
           p = f(t, p)
         end # for
-        maxiterations
+        normalize(maxiterations+1,p)
       end # function
     else
       return function seedescapetimenorm(x::Real, y::Real)
         t = topoint(x,y) # Family parameter
         p = seed # Seed
         for n in 0:maxiterations
-          if hasescaped(p)
+          if hasescaped(t, p)
             return normalize(n,p)
           end # if hasescaped
           p = f(t, p)
         end # for
-        maxiterations
+        normalize(maxiterations+1,p)
       end # function
     end # if function
   end # if normalize
@@ -73,14 +73,18 @@ Return a matrix of escape time values for Mandelbrot.
 """
 function matrixmandelbrot(f::Function, xs::AbstractVector{<:Real}, ys::AbstractVector{<:Real};
   seed::Union{Number, AbstractVector{<:Real}, Function},
-  hasescaped::Function=z->abs2(z)>4, maxiterations::Int=100, normalize::Union{Nothing, Function}=nothing, 
+  hasescaped::Function=(t,z)->abs2(z)>4, maxiterations::Int=100, normalize::Union{Nothing, Function}=nothing, 
   value::Function=k::Real->k, rot90::Bool=false)
 
   esctime = createseedescapetime(f, seed=seed, topoint=createtopoint2D(functionfamkind2D(f)),
     hasescaped=hasescaped, maxiterations=maxiterations, normalize=normalize)
 
   W, H = length(xs), length(ys)
-  mtrx = rot90 ? fill(value(0.0), H, W) : fill(value(0.0), W, H)
+  mtrx = rot90 ? fill(value(1.0), H, W) : fill(value(1.0), W, H)
+
+  if maxiterations < 0
+    return mtrx
+  end
 
   if rot90
     _ys = Base.reverse(ys)
@@ -126,13 +130,14 @@ The generalized Mandelbrot set of \$f_t\$ is defined as
 """
 function imgmandelbrot(f::Function, xs::AbstractVector{<:Real}, ys::AbstractVector{<:Real};
   seed::Union{Number, AbstractVector{<:Real}, Function},
-  hasescaped::Function = p->abs2(p)>4, maxiterations::Int = 100, normalize::Union{Nothing, Function}=nothing,
+  hasescaped::Function = (t,p)->abs2(p)>4, maxiterations::Int = 100, normalize::Union{Nothing, Function}=nothing,
   colormap::Union{Symbol, Vector{<:Colorant}} = :viridis)
 
   cm = typeof(colormap) == Symbol ? colorschemes[colormap] : ColorScheme(colormap)
+  N=maxiterations+1
 
   matrixmandelbrot(f, xs, ys; seed=seed, hasescaped=hasescaped, maxiterations=maxiterations,
-    normalize=normalize, value = k::Real -> cm[k/maxiterations], rot90=true)
+    normalize=normalize, value = k::Real -> cm[k/N], rot90=true)
 end
 
 
@@ -163,7 +168,7 @@ The generalized Mandelbrot set of \$f_t\$ is defined as
   Attributes(
     seed = 0,
     maxiterations = 20,
-    hasescaped = p -> abs2(p)>4,
+    hasescaped = (t,p) -> abs2(p)>4,
     normalize = nothing,
     plotstyle = :heatmap
   )
@@ -196,10 +201,11 @@ function Makie.plot!(plt::Mandelbrot{<:Tuple{Function, <:AbstractVector{<:Real},
   if pltsty == :image
     pltcm = haskey(plt.attributes.attributes, :colormap) ? plt.colormap[] : :viridis
     cm = typeof(pltcm) == Symbol ? colorschemes[pltcm] : ColorScheme(pltcm)
+    N=maxits+1
 
     image!(plt, obs_xs, obs_ys,
       matrixmandelbrot(f, xs, ys, seed=s, hasescaped=he, maxiterations=maxits, normalize=nrm,
-        value=k->cm[k/maxits] );
+        value=k->cm[k/N] );
       plt.attributes.attributes...)
   else
     heatmap!(plt, obs_xs, obs_ys,
@@ -218,13 +224,13 @@ end
 Same as `mandelbrot`, but using **InteractiveViz**.
 """
 imandelbrot(f::Function, xs, ys; seed::Union{Number,AbstractVector{<:Real},Function}, maxiterations::Int=100,
-  hasescaped::Function=p->abs2(p)>4, normalize::Union{Nothing, Function}=nothing, kwargs...) =
+  hasescaped::Function=(t,p)->abs2(p)>4, normalize::Union{Nothing, Function}=nothing, kwargs...) =
   iheatmap( createseedescapetime( f, seed=seed, topoint=createtopoint2D(functionfamkind2D(f)),
       hasescaped=hasescaped, maxiterations=maxiterations, normalize=normalize ),
     xs[1], xs[end], ys[1], ys[end];
     kwargs...)
 imandelbrot(g, f::Function, xs, ys; seed::Union{Number,AbstractVector{<:Real},Function}, maxiterations::Int=100,
-  hasescaped::Function=p->abs2(p)>4, normalize::Union{Nothing, Function}=nothing, kwargs...) =
+  hasescaped::Function=(t,p)->abs2(p)>4, normalize::Union{Nothing, Function}=nothing, kwargs...) =
   iheatmap(g, createseedescapetime( f, seed=seed, topoint=createtopoint2D(functionfamkind2D(f)),
       hasescaped=hasescaped, maxiterations=maxiterations, normalize=normalize ),
     xs[1], xs[end], ys[1], ys[end];
@@ -241,7 +247,7 @@ Create a function to return the scape time of iterations of a set of point.
 """
 function createmultiseedescapetime(f::Function; topoint::Function,
     seed::AbstractVector,
-    hasescaped::Function=p->abs2(p)>4, maxiterations::Int=100,
+    hasescaped::Function=(t,p)->abs2(p)>4, maxiterations::Int=100,
     normalize::Union{Nothing, Function}=nothing, normalizesum::Union{Symbol, Function}=:trunc,
     scale::Union{Nothing,Function}=nothing,)
 
@@ -269,10 +275,10 @@ function createmultiseedescapetime(f::Function; topoint::Function,
       return function seedfuncescapetime(x::Real, y::Real)
         t = topoint(x,y) # Family parameter
         sumets = length(seed)*maxiterations
-        for k in 1:length(seed)
-          p = seed[k](t)
+        for s in seed
+          p = s(t)
           for n in 0:maxiterations
-            if hasescaped(p)
+            if hasescaped(t, p)
               sumets += (n-maxiterations)
               break
             end # if hasescaped
@@ -284,12 +290,10 @@ function createmultiseedescapetime(f::Function; topoint::Function,
     else
       return function seedescapetime(x::Real, y::Real)
         t = topoint(x,y) # Family parameter
-        ps = seed # Seeds
         sumets = length(seed)*maxiterations
-        for k in 1:length(ps)
-          p = ps[k]
+        for p in seed
           for n in 0:maxiterations
-            if hasescaped(p)
+            if hasescaped(t, p)
               sumets += (n-maxiterations)
               break
             end # if hasescaped
@@ -304,10 +308,10 @@ function createmultiseedescapetime(f::Function; topoint::Function,
       return function seedfuncescapetimenorm(x::Real, y::Real)
         t = topoint(x,y) # Family parameter
         sumets = length(seed)*maxiterations
-        for k in 1:length(seed)
-          p = seed[k](t)
+        for s in seed
+          p = s(t)
           for n in 0:maxiterations
-            if hasescaped(p)
+            if hasescaped(t,p)
               sumets += (n-maxiterations)
               break
             end # if hasescaped
@@ -319,12 +323,10 @@ function createmultiseedescapetime(f::Function; topoint::Function,
     else
       return function seedescapetimenorm(x::Real, y::Real)
         t = topoint(x,y) # Family parameter
-        ps = seed # Seed
         sumets = length(seed)*maxiterations
-        for k in 1:length(ps)
-          p = ps[k]
+        for p in seed
           for n in 0:maxiterations
-            if hasescaped(p)
+            if hasescaped(t,p)
               sumets += (n-maxiterations)
               break
             end # if hasescaped
@@ -344,7 +346,7 @@ end
 Return a matrix colors of escape time values for Mandelbrot multi-seed.
 """
 function matrixmandelbrotmultiseed(f::Function, xs::AbstractVector{<:Real}, ys::AbstractVector{<:Real};
-  seed::AbstractVector, hasescaped::Function=z->abs2(z)>4, maxiterations::Int=100,
+  seed::AbstractVector, hasescaped::Function=(t,z)->abs2(z)>4, maxiterations::Int=100,
   normalize::Union{Nothing, Function}=nothing, normalizesum::Union{Symbol, Function}=:trunc,
   scale::Union{Nothing,Function}=nothing,
   value0=RGB(0,0,0), value::Function=k::Real->RGB(1,1,1), rot90::Bool=false)
@@ -387,14 +389,14 @@ function matrixmandelbrotmultiseed(f::Function, xs::AbstractVector{<:Real}, ys::
     for h in 1:H
       for w in 1:W
         summaxits = 0
-        for k in 1:length(seed)
+        for k in eachindex(seed)
           ets[k] = esctimes[k](xs[w],_ys[h])
           summaxits += ets[k]
         end # for seeds
         mtrx[h,w] = value0
         if summaxits > 0
           etvalue = ClrType(0,0,0)
-          for k in 1:length(seed)
+          for k in eachindex(seed)
             etvalue += (ets[k]/summaxits)*ClrType(value(k))
           end
           T = sclnrm(summaxits) #log(avmaxits)/log(maxiterations)
@@ -406,14 +408,14 @@ function matrixmandelbrotmultiseed(f::Function, xs::AbstractVector{<:Real}, ys::
     for h in 1:H
       for w in 1:W
         summaxits = 0
-        for k in 1:length(seed)
+        for k in eachindex(seed)
           ets[k] = esctimes[k](xs[w],ys[h])
           summaxits += ets[k]
         end # for seeds
         mtrx[w,h] = value0
         if summaxits > 0
           etvalue = ClrType(0,0,0)
-          for k in 1:length(seed)
+          for k in eachindex(seed)
             etvalue += (ets[k]/summaxits)*ClrType(value(k))
           end
           T = sclnrm(summaxits)
@@ -454,7 +456,7 @@ The generalized Mandelbrot set with multiple seeds of \$f_t\$ is defined as
 - `outsidecolor`: A color to be asigned when is in the "escape zone".
 """
 function imgmandelbrotmultiseed(f::Function, xs::AbstractVector{<:Real}, ys::AbstractVector{<:Real};
-  seed::AbstractVector, hasescaped::Function = p->abs2(p)>4, maxiterations::Int = 100,
+  seed::AbstractVector, hasescaped::Function = (t,p)->abs2(p)>4, maxiterations::Int = 100,
   normalize::Union{Nothing, Function}=nothing, normalizesum::Union{Symbol, Function}=:trunc,
   scale::Union{Nothing,Function}=nothing,
   colormap::Union{Symbol, Vector{<:Colorant}} = :viridis, outsidecolor=RGB(0,0,0))
@@ -493,12 +495,16 @@ The generalized Mandelbrot set with multiple seeds of \$f_t\$ is defined as
 - `scale::Function`: A scale function \$S\$to the ratio \$S(\$ escape time \$)/S(\$ maxiterations \$)\$.
 - `plotstyle::Symbol`: Plot style `:heatmap` or `:image`.
 - `outsidecolor`: A color to be asigned when is in the "escape zone".
+
+#### Note
+The drawing with `plotstyle=:heatmap` differs from that with `plotstyle=:image` because of the incompatibility of the `mandelbrotmultiseed` algorithm using 
+color averaging and the **Makie**'s heatmap algorithm.
 """
 @recipe(MandelbrotMultiSeed) do scene
   Attributes(
     seed = [0im, 1im],
     maxiterations = 20,
-    hasescaped = p -> abs2(p)>4,
+    hasescaped = (t,p) -> abs2(p)>4,
     normalize = nothing,
     normalizesum = :trunc,
     scale = nothing,
@@ -542,7 +548,7 @@ function Makie.plot!(plt::MandelbrotMultiSeed{<:Tuple{Function, <:AbstractVector
   # Makie's Plot
   if pltsty == :image
     cm = length(s) > 1 ? [ cs[k/(length(s)-1)] for k in 0:(length(s)-1) ] : [cs[0.0]]
-    image!(plt, obs_xs, obs_ys,
+    image!(plt, obs_xs[][1]..obs_xs[][end], obs_ys[][1]..obs_ys[][end],
       matrixmandelbrotmultiseed(f, xs, ys, seed=s, hasescaped=he, maxiterations=maxits,
         normalize=nrm, normalizesum=nrmsum, scale=scl,
         value=k::Int->cm[k], value0=outclr );
@@ -566,19 +572,19 @@ end
 Same as `mandelbrotmultiseed`, but using **InteractiveViz**.
 """
 function imandelbrotmultiseed(f::Function, xs, ys; seed::AbstractVector,
-    maxiterations::Int=100, hasescaped::Function=p->abs2(p)>4,
+    maxiterations::Int=100, hasescaped::Function=(t,p)->abs2(p)>4,
     normalize::Union{Nothing, Function}=nothing, normalizesum::Union{Symbol, Function}=:trunc,
     scale::Union{Nothing,Function}=nothing, outsidecolor=RGB(0,0,0), kwargs...)
   pltcm = haskey(kwargs, :colormap) ? kwargs[:colormap] : :viridis
   cs = typeof(pltcm) == Symbol ? colorschemes[pltcm] : ColorScheme(pltcm)
   cm = ColorScheme([outsidecolor, cs.colors...])
   iheatmap( createmultiseedescapetime( f, seed=seed, topoint=createtopoint2D(functionfamkind2D(f)),
-      hasescaped=hasescaped, maxiterations=maxiterations, normalize=normaliz, normalizesum=normalizesum, scale=scale),
+      hasescaped=hasescaped, maxiterations=maxiterations, normalize=normalize, normalizesum=normalizesum, scale=scale),
     xs[1], xs[end], ys[1], ys[end];
     kwargs..., colormap=cm)
 end
 function imandelbrotmultiseed(g, f::Function, xs, ys; seed::AbstractVector,
-    maxiterations::Int=100, hasescaped::Function=p->abs2(p)>4,
+    maxiterations::Int=100, hasescaped::Function=(t,p)->abs2(p)>4,
     normalize::Union{Nothing, Function}=nothing, normalizesum::Union{Symbol, Function}=:trunc,
   scale::Union{Nothing,Function}=nothing, outsidecolor=RGB(0,0,0), kwargs...)
   pltcm = haskey(kwargs, :colormap) ? kwargs[:colormap] : :viridis

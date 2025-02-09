@@ -8,8 +8,8 @@ module SDD
 #using Base: iterate_continued
 using Reexport
 
-@reexport using StaticArrays, IntervalSets,
-  Colors, ColorSchemes
+#@reexport using StaticArrays, IntervalSets,
+#  Colors, ColorSchemes
 using SDDCore, SDDGeometry, SDDGraphics, Images, Makie, InteractiveViz
 #@reexport import
 

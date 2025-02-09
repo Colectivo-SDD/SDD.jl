@@ -16,26 +16,42 @@ Plot the graph of the n-th iterate of a function
 #### Keyword Arguments
 - `iterations::Int`: Number of iterations to calculate \$f^n\$.
 """
-@recipe(FuncGraph) do scene
-  Attributes(
-    iterations = 1
-  )
+@recipe(FuncGraph, f, xs) do scene
+    attrs = Attributes(
+      iterations = 1
+    )
+    Makie.merge(attrs, default_theme(scene, Lines))    
 end
 
-function Makie.plot!(plt::FuncGraph{<:Tuple{Function, Any}})
+function Makie.plot!(plt::FuncGraph{<:Tuple{<:Function, Any}})
+  # Recipe arguments
+  obs_f, obs_xs = plt[:f], plt[:xs]
+
   # Recipe attributes
-  obs_f = plt[1]
-  f = obs_f[] # Function
-  obs_fn = Observable(iteratef(f, plt.iterations[]))
+
+  # Updatable data
+  obs_ys = Observable{Vector{Float32}}([])
+
+  # Update function
+  function update_plot(f, xs, iterations)
+    xs_loc = xs isa AbstractInterval ? ((xs.left):((xs.right-xs.left)/500):(xs.right)) : xs
+    f_loc = iterations > 1 ? iteratef(f, iterations) : f
+    obs_ys[] = f_loc.(xs_loc)
+  end
+
+  # Connect `update_plot` so that it is called whenever arguments change
+  Makie.Observables.onany(update_plot, obs_f, obs_xs, plt.iterations)
+
+  # Then call it once manually with the first argument contents so we prepopulate all observables with correct values
+  update_plot(obs_f[], obs_xs[], plt.iterations[])
 
   # Remove non Makie keyword arguments to avoid errors
   delete!(plt.attributes.attributes, :iterations)
-  
-  # Plot the nth-iterate of f
-  lines!(plt, plt[2], obs_fn; plt.attributes.attributes...)
 
-  plt
+  # Plot the nth-iterate of f and return 
+  lines!(plt, obs_xs, obs_ys; plt.attributes.attributes...)
 end
+
 
 """
     ifuncgraph([g], f, xs [; iterations])
@@ -78,40 +94,60 @@ Plot the tangent line to the graph of the \$n\$-th iteration of a function
 #### Keyword Arguments
 - `iterations::Int`: Number of iterations to calculate the iterative \$f^n\$.
 """
-@recipe(FuncTangent) do scene
-  Attributes(
+@recipe(FuncTangent, f, x0, xs) do scene
+  attrs = Attributes(
     iterations = 1
   )
+  Makie.merge(attrs, default_theme(scene, ScatterLines))
 end
 
 function Makie.plot!(plt::FuncTangent{<:Tuple{Function, Real, Any}})
   # Recipe attributes
-  obs_f = plt[1]
-  f = obs_f[] # Function
-  obs_x0 = plt[2] 
-  x0 = obs_x0[]
-  obs_xs = plt[3] 
-  xs = obs_xs[]
+  obs_f = plt[:f]
+  obs_x0 = plt[:x0] 
+  obs_xs = plt[:xs]
 
   # Plot keyword arguments
-  nits = plt.iterations[]
+
+  # Observables to the final plot
+  obs_xs_tan = Observable( Float32[] )
+  obs_ys_tan = Observable( Float32[] )
+
+  # Update plot function
+  function update_plot(f, x0, xs, iterations)
+    fn = iteratef( f, iterations )
+    xmin, xmax = xs isa AbstractInterval ? (xs.left, xs.right) : (xs[1], xs[end])
+    y0 = fn(x0)
+    delta = 0.0000001
+    m = (fn(x0+delta) - fn(x0-delta))/(2delta)
+    obs_xs_tan[] = [ xmin, x0, xmax ]
+    obs_ys_tan[] = [ y0 + m*(xmin - x0), y0, y0 + m*(xmax - x0) ]
+  end
+
+  # connect `update_plot` so that it is called whenever arguments change
+  Makie.Observables.onany(update_plot, obs_f, obs_x0, obs_xs, plt.iterations)
+
+  # then call it once manually with the first argument contents so we prepopulate all observables with correct values
+  update_plot(obs_f[], obs_x0[], obs_xs[], plt.iterations[])
 
   # Calculate tangent of f^n
-  fn = iteratef(obs_f[], nits)
+  #=fn = iteratef(obs_f[], nits)
   xmin, xmax = xs isa AbstractInterval ? (xs.left, xs.right) : (xs[1], xs[end])
   y0 = fn(x0)
+
   delta = 0.00001
   m = (fn(x0+delta) - fn(x0-delta))/(2delta)
+
+  xs =  [xmin, x0, xmax]
   ys = [ y0 + m*(xmin - x0), y0, y0 + m*(xmax - x0) ]
+  =#
 
   # Remove non Makie keyword arguments to avoid errors
   delete!(plt.attributes.attributes, :iterations)
 
-  # Plot tangent
-  scatterlines!(plt, Observable([xmin, x0, xmax]), Observable(ys);
-      plt.attributes.attributes...)
-
-  plt
+  # Plot tangent and return 
+  #scatterlines!(plt, Observable([xmin, x0, xmax]), Observable(ys); plt.attributes.attributes...)
+  scatterlines!(plt, obs_xs_tan, obs_ys_tan; plt.attributes.attributes...)
 end
 
 
@@ -137,23 +173,108 @@ Plot the **G**raphical **A**nalysis of the orbit of \$x_0\$ (or \$[x_0,x_1]\$) u
   - `:time`: Different colors for each time.
   - `:unique`: Unique color.
 """
-@recipe(OrbitGA) do scene
-  Attributes(
+@recipe(OrbitGA, f, x0) do scene
+  attrs = Attributes(
     iterations = 20,
     hidediterations = 0,
-    coloring = :time,
-    colormap = :viridis
+    coloring = :time
+    #colormap = :viridis
   )
+  Makie.merge(attrs, default_theme(scene, Lines))  
 end
 
 function Makie.plot!(plt::OrbitGA{ <:Tuple{ Function, Any } })
-
   # Recipe attributes
-  obs_f = plt[1]
-  f = obs_f[] # Function
-  #@assert typeof(f(1.)) <: Real # Function verification
-  obs_x0 = plt[2]
-  x0 = obs_x0[]
+  obs_f = plt[:f]
+  obs_x0 = plt[:x0]
+
+  # Observables to the final plot
+  obs_xns = Observable(Float32[])
+  obs_yns = Observable(Float32[])
+
+  # Update plot function
+  function update_plot(f, x0, iterations, hidediterations, coloring, colormap)
+    empty!(obs_xns[])
+    empty!(obs_yns[])
+    notify(obs_xns)
+    notify(obs_yns)
+
+    x0s = Float32[]
+    if x0 isa Real
+      push!(x0s, x0)
+    else
+      x0s = x0 isa AbstractInterval ? [x0.left, x0.right] : collect(x0)
+    end
+    nvals = length(x0s) # Number of inital values
+
+    # Hided iterations, not to be drawn
+    if hidediterations > 0 
+      for k in 1:nvals
+        for n in 1:hidediterations
+          x0s[k] = f(x0s[k])
+        end
+      end
+    end
+
+    # Iterations, to be drawn
+    for k in 1:nvals
+      x = x0s[k]
+      push!(obs_xns[], x)
+      push!(obs_yns[], 0.0)
+      for n in 1:iterations
+        push!(obs_xns[], x)
+        y = f(x)
+        push!(obs_yns[], y)
+        push!(obs_xns[], y)
+        push!(obs_yns[], y)
+        x = y
+      end
+      push!(obs_xns[], NaN)
+      push!(obs_yns[], NaN)
+    end
+
+    # Coloring
+    cm = getcolorscheme(colormap)
+    if coloring == :orbit
+      N = 2iterations+2
+      loc_colors = []
+      if nvals > 1
+        K = nvals-1
+        for k in 0:K
+          c = cm[k/K]
+          for n in 1:N
+            push!(loc_colors, c)
+          end
+        end
+      else
+        loc_colors = fill(cm[0.0], N)
+      end
+      plt.color[] = loc_colors
+    elseif coloring == :time
+      N = 2iterations+1
+      K = nvals-1
+      loc_colors = []
+      for k in 0:K
+        for n in 0:N
+          push!(loc_colors, cm[n/N])
+        end
+      end
+      plt.color[] = loc_colors
+    elseif coloring == :unique
+      plt.color[] = fill(cm[0.0], (2iterations+2)*nvals)
+    end
+
+    notify(obs_xns)
+    notify(obs_yns)
+  end # Function update_plot
+
+  # connect `update_plot` so that it is called whenever arguments change
+  Makie.Observables.onany(update_plot, obs_f, obs_x0, plt.iterations, plt.hidediterations, plt.coloring, plt.colormap)
+
+  # then call it once manually with the first argument contents so we prepopulate all observables with correct values
+  update_plot(obs_f[], obs_x0[], plt.iterations[], plt.hidediterations[], plt.coloring[], plt.colormap[])  
+
+#=  
   x0s = Float64[]
   if x0 isa Real
     push!(x0s, x0)
@@ -213,20 +334,30 @@ function Makie.plot!(plt::OrbitGA{ <:Tuple{ Function, Any } })
   elseif clrn == :time
     funcolor = k::Int -> 1:(2nits+1)
   end
+=#
 
   # Remove non Makie keyword arguments to avoid errors
   delete!(plt.attributes.attributes, :iterations)
   delete!(plt.attributes.attributes, :hidediterations)
   delete!(plt.attributes.attributes, :coloring)
+  #delete!(plt.attributes.attributes, :color)
 
   # Drawing the iterations
-  for k in 1:nvals
-    lines!(plt, obs_xns[k], obs_yns[k];
-      plt.attributes.attributes..., color = funcolor(k))
-  end  
+  #for k in 1:length(obs_xns)
+    #lines!(plt, obs_xns[k], obs_yns[k];
+    lines!(plt, obs_xns, obs_yns;
+    #lines!(plt, obs_pts;
+      #plt.attributes.attributes..., color = funcolor(k))
+      #plt.attributes.attributes..., color = funkcolor[](k))
+      plt.attributes.attributes...) #, color = obs_colors)
+  #end  
 
-  plt 
+  #plt 
 end
+
+
+const cobweb = orbitga
+const cobweb! = orbitga!
 
 
 #
@@ -261,11 +392,10 @@ Plot the graph of the \$n\$-th iterative of a function
 end
 
 function Makie.plot!(plt::OrbitArcPath{<:Tuple{ Function, Any } } )
-
   # Recipe attributes
   obs_f = plt[1]
   f = obs_f[] # Function
-  @assert typeof(f(1.)) <: Real # Function verification
+  #@assert typeof(f(1.)) <: Real # Function verification
   obs_x0 = plt[2]
   x0 = obs_x0[]
   x0s = Float64[]
@@ -295,7 +425,8 @@ function Makie.plot!(plt::OrbitArcPath{<:Tuple{ Function, Any } } )
   if haskey(plt, :color)
     funcolor = (k::Int, n::Int) -> plt.color[] # Unique
   end
-  cm = plt.colormap[] isa Symbol ? colorschemes[plt.colormap[]] : ColorScheme(plt.colormap[])
+  #cm = plt.colormap[] isa Symbol ? colorschemes[plt.colormap[]] : ColorScheme(plt.colormap[])
+  cm = getcolorscheme(plt.colormap[])
   if clrn == :orbit
     if nvals > 1
       cmarr = [ cm[k/(nvals-1)] for k in 0:(nvals-1) ]
@@ -333,7 +464,6 @@ function Makie.plot!(plt::OrbitArcPath{<:Tuple{ Function, Any } } )
 
   plt
 end
-
 
 #=
 """
@@ -386,17 +516,6 @@ function plot(f::Function; iterations::Int=1, identity::Bool=true)
         xi0, yi0 = xi1, yi1
     end
 
-#= ToDo: Con compose queda así :-)
-fn = compose(f,iteraions)
-
-xi0, yi0 = x1, fn(x1)
-for i in 0:w
-    xi1 = x1 + i*Δx
-    yi1 = fn(xi1)
-    SDDGraphics.drawlinesegment(xi0,yi0,xi1,yi1)
-    xi0, yi0 = xi1, yi1
-end
-=#
     SDDGraphics.drawing()
 end
 
@@ -465,4 +584,16 @@ function graphicalanalysis(f::Function, x0::Real;
     SDDGraphics.drawing()
 end
 
+=#
+
+#= ToDo: Con compose queda así :-)
+fn = compose(f,iteraions)
+
+xi0, yi0 = x1, fn(x1)
+for i in 0:w
+    xi1 = x1 + i*Δx
+    yi1 = fn(xi1)
+    SDDGraphics.drawlinesegment(xi0,yi0,xi1,yi1)
+    xi0, yi0 = xi1, yi1
+end
 =#

@@ -14,7 +14,7 @@ function createescapetime(f::Function; topoint::Function,
         end
         p = f(p)
       end
-      maxiterations
+      maxiterations+1
     end
   else
     return function escapetimenorm(x::Real, y::Real)
@@ -26,10 +26,10 @@ function createescapetime(f::Function; topoint::Function,
         p = f(p)
       end
       #normalize(maxiterations, p)
-      maxiterations
+      normalize(maxiterations+1, p)
     end
   end
-  (x,y) -> maxiterations
+  (x,y) -> maxiterations+1
 end
 
 
@@ -44,7 +44,11 @@ function matrixtrappedpoints(f::Function, xs::AbstractVector{<:Real}, ys::Abstra
     hasescaped=hasescaped, maxiterations=maxiterations, normalize=normalize)
 
   W, H = length(xs), length(ys)
-  mtrx = rot90 ? fill(value(0.0), H, W) : fill(value(0.0), W, H)
+  mtrx = rot90 ? fill(value(1.0), H, W) : fill(value(1.0), W, H)
+
+  if maxiterations < 0
+    return mtrx
+  end
 
   if rot90
     _ys = Base.reverse(ys)
@@ -91,10 +95,11 @@ function imgtrappedpoints(f::Function, xs::AbstractVector{<:Real}, ys::AbstractV
   colormap::Union{Symbol, Vector{<:Colorant}} = :viridis)
 
   cm = typeof(colormap) == Symbol ? colorschemes[colormap] : ColorScheme(colormap)
-  #cm = [ cs[k/maxiterations] for k in 0.0:maxiterations ]
+
+  N=maxiterations+1
 
   matrixtrappedpoints(f, xs, ys; hasescaped=hasescaped, maxiterations=maxiterations,
-    normalize=normalize, value = k::Real -> cm[k/maxiterations], rot90=true)
+    normalize=normalize, value = k::Real -> cm[k/N], rot90=true)
 end
 
 
@@ -153,10 +158,11 @@ function Makie.plot!(plt::TrappedPoints{<:Tuple{Function, <:AbstractVector{<:Rea
   if pltsty == :image
     pltcm = haskey(plt.attributes.attributes, :colormap) ? plt.colormap[] : :viridis
     cm = typeof(pltcm) == Symbol ? colorschemes[pltcm] : ColorScheme(pltcm)
+    N = maxits+1
 
-    image!(plt, obs_xs, obs_ys,
+    image!(plt, obs_xs[][1]..obs_xs[][end], obs_ys[][1]..obs_ys[][end],
       matrixtrappedpoints(f, xs, ys, hasescaped=he, maxiterations=maxits, normalize=nrm,
-        value=k->cm[k/maxits] );
+        value=k->cm[k/N] );
       plt.attributes.attributes...)
   else
     heatmap!(plt, obs_xs, obs_ys,

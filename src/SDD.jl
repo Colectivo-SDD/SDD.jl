@@ -118,7 +118,10 @@ export
     imgbasins,
     basins,
     basins!,
-    ibasins
+    ibasins,
+    imgbasinsbdry,
+    basinsbdry,
+    basinsbdry!
 
 
 #include("SUmanifolds.jl")

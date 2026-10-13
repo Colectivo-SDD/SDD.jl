@@ -11,6 +11,7 @@ using Reexport
 #@reexport using StaticArrays, IntervalSets,
 #  Colors, ColorSchemes
 using SDDCore, SDDGeometry, SDDGraphics, Images, Makie, InteractiveViz
+using IntervalSets: AbstractInterval
 #@reexport import
 
 
